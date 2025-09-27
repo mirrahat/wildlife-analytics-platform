@@ -1,0 +1,22 @@
+# Australian Biodiversity Platform - Step-by-Step Requirements
+
+# Step 1: Basic Data Collection
+requests>=2.31.0
+pandas>=2.0.0
+
+# Step 2: Data Storage (coming next)
+# sqlalchemy>=2.0.0
+# psycopg2-binary>=2.9.0
+
+# Step 3: Analysis & Visualization (coming later)  
+# matplotlib>=3.7.0
+# plotly>=5.15.0
+# jupyter>=1.0.0
+
+# Step 4: Advanced Features (final step)
+# docker-compose
+# apache-airflow
+# streamlit
+
+# Development Tools
+python-dotenv>=1.0.0

@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Collect Australian Wildlife Data",
+			"type": "shell",
+			"command": "python collect_aussie_wildlife.py",
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}
