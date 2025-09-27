@@ -1,42 +1,53 @@
 # Australian Biodiversity Analytics Platform
 
-🦘 A step-by-step data engineering platform for Australian wildlife research
+Professional platform for collecting, storing, and analyzing real Australian wildlife data from public research APIs.
 
-## What This Project Does
+## Overview
+This platform connects to established biodiversity APIs (iNaturalist, GBIF) to collect real-time Australian wildlife observations. All data is sourced from active citizen science projects and research databases - no synthetic or static data.
 
-This platform helps researchers study Australian wildlife by:
-1. Collecting real animal data from public APIs
-2. Storing and organizing biodiversity information  
-3. Providing tools to analyze Australian species
-4. Creating visualizations of wildlife patterns
+## Quick Start
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-## Getting Started
+# Collect fresh wildlife data
+python main.py collect
 
-We'll build this step by step so you understand every component:
+# Explore collected data
+python main.py explore
+```
 
-### Step 1: Simple Data Collector (Current)
-- Collect basic Australian species data
-- Learn how APIs work
-- See real wildlife information
+## Project Structure
+```
+australian-biodiversity-platform/
+├── src/                    # Core application modules
+│   ├── collectors/         # API data collection
+│   ├── database/          # Data storage and retrieval
+│   ├── analysis/          # Data analysis tools
+│   └── utils/             # Common utilities
+├── scripts/               # Executable scripts
+├── tests/                 # Unit and integration tests
+├── config/                # Configuration files
+└── data/                  # Local data storage
+```
 
-### Step 2: Add Database (Next)
-- Store the collected data
-- Learn about data persistence
-- Query wildlife information
+## Features
+- **Live Data Collection**: Real-time API integration with iNaturalist and GBIF
+- **Australian Focus**: Geographic filtering for Continental Australia
+- **Species Tracking**: Koalas, kangaroos, native birds, and other wildlife
+- **Database Storage**: SQLite database for local data persistence
+- **Data Analysis**: Built-in tools for exploring wildlife patterns
+- **Extensible Architecture**: Modular design for easy feature addition
 
-### Step 3: Add Analysis Tools (Later)
-- Process and analyze the data
-- Create charts and maps
-- Generate research insights
+## Data Sources
+- **iNaturalist API**: Citizen science observations
+- **GBIF API**: Global Biodiversity Information Facility
+- All data represents real wildlife sightings by researchers and nature enthusiasts
 
-### Step 4: Add Advanced Features (Final)
-- Real-time monitoring
-- Automated reports
-- Professional dashboards
-
-## Current Status
-✅ Project structure created  
-🔄 Building Step 1: Simple Data Collector  
-
-## Next Steps
-Run the first data collector to see real Australian animal data!
+## Future Extensions
+The organized structure supports easy addition of:
+- Advanced data visualizations
+- Machine learning models for species prediction
+- Web dashboard interface
+- Automated reporting systems
+- Integration with additional biodiversity APIs
