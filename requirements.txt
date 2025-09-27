@@ -1,4 +1,17 @@
-# Australian Biodiversity Platform - Step-by-Step Requirements
+# Australian Biodiversity Platform Requirements
+
+# Core data collection
+requests>=2.31.0
+pandas>=2.0.0
+
+# Data visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+folium>=0.14.0
+
+# Optional: For future extensions
+# sqlalchemy>=2.0.0
+# psycopg2-binary>=2.9.0ian Biodiversity Platform - Step-by-Step Requirements
 
 # Step 1: Basic Data Collection
 requests>=2.31.0

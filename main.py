@@ -16,6 +16,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from scripts.collect_wildlife_data import collect_and_store_data as collect_data
 from scripts.explore_data import main as explore_data
+from scripts.visualize_data import main as visualize_data
 
 def show_help():
     """Display usage information"""
@@ -23,13 +24,15 @@ def show_help():
     print("=" * 35)
     print()
     print("Commands:")
-    print("  collect    Collect fresh Australian wildlife data from APIs")
-    print("  explore    Explore and analyze collected wildlife data")
-    print("  help       Show this help message")
+    print("  collect     Collect fresh Australian wildlife data from APIs")
+    print("  explore     Explore and analyze collected wildlife data")
+    print("  visualize   Generate charts and graphs from wildlife data")
+    print("  help        Show this help message")
     print()
     print("Examples:")
     print("  python main.py collect")
     print("  python main.py explore")
+    print("  python main.py visualize")
 
 def main():
     """Main command dispatcher"""
@@ -45,6 +48,9 @@ def main():
     elif command == 'explore':
         print("Opening wildlife data explorer...")
         explore_data()
+    elif command == 'visualize':
+        print("Generating wildlife data visualizations...")
+        visualize_data()
     elif command in ['help', '--help', '-h']:
         show_help()
     else:
