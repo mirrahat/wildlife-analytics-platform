@@ -159,9 +159,9 @@ class WildlifeETLPipeline:
             'clean_locations': self._clean_locations,
             'add_quality_flags': self._add_quality_flags,
             'calculate_biodiversity_metrics': self._calculate_biodiversity_metrics,
-            'aggregate_by_location': self._aggregate_by_location,
-            'aggregate_by_time': self._aggregate_by_time,
-            'detect_rare_species': self._detect_rare_species
+            'aggregate_by_location': self.aggregate_by_location,
+            'aggregate_by_time': self.aggregate_by_time,
+            'detect_rare_species': self.detect_rare_species
         }
     
     def register_quality_checks(self):
@@ -434,6 +434,8 @@ class WildlifeETLPipeline:
                     monthly_counts = monthly_data.groupby(['year_month', 'common_name']).size().reset_index()
                     monthly_counts['metric_name'] = 'monthly_observations'
                     monthly_counts['aggregation_type'] = 'temporal_trends'
+                    # Convert Period to string for SQLite compatibility
+                    monthly_counts['year_month'] = monthly_counts['year_month'].astype(str)
                     monthly_counts.rename(columns={
                         'year_month': 'dimension_1',
                         'common_name': 'dimension_2',
@@ -454,132 +456,86 @@ class WildlifeETLPipeline:
                 'metric_value', 'created_at'
             ])
     
-    def _aggregate_by_location(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Create location-based aggregations"""
-        if df is None or df.empty or 'location_description' not in df.columns:
-            logger.warning("Cannot create location aggregations: missing location_description column")
-            return pd.DataFrame(columns=[
-                'aggregation_type', 'dimension_1', 'dimension_2', 'metric_name', 
-                'metric_value', 'created_at'
-            ])
-        
-        # Filter out null locations
-        valid_data = df.dropna(subset=['location_description'])
-        
-        if valid_data.empty:
-            logger.warning("No valid location data for aggregation")
-            return pd.DataFrame(columns=[
-                'aggregation_type', 'dimension_1', 'dimension_2', 'metric_name', 
-                'metric_value', 'created_at'
-            ])
-        
-        # Count observations by location
-        location_counts = valid_data.groupby('location_description').size().reset_index()
-        location_counts.columns = ['location_description', 'observation_count']
-        
-        # Transform to gold layer format
-        location_aggs = pd.DataFrame({
-            'aggregation_type': 'location_summary',
-            'dimension_1': location_counts['location_description'],
-            'dimension_2': None,
-            'metric_name': 'observation_count',
-            'metric_value': location_counts['observation_count'],
-            'created_at': datetime.now()
-        })
-        
-        logger.info(f"Created location aggregations for {len(location_aggs)} locations")
-        return location_aggs
-    
-    def _aggregate_by_time(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Create time-based aggregations"""
-        if df is None or df.empty or 'observed_date' not in df.columns:
-            logger.warning("Cannot create temporal aggregations: missing observed_date column")
-            return pd.DataFrame(columns=[
-                'aggregation_type', 'dimension_1', 'dimension_2', 'metric_name', 
-                'metric_value', 'created_at'
-            ])
-        
-        # Filter out null dates
-        valid_data = df.dropna(subset=['observed_date'])
-        
-        if valid_data.empty:
-            logger.warning("No valid date data for temporal aggregation")
-            return pd.DataFrame(columns=[
-                'aggregation_type', 'dimension_1', 'dimension_2', 'metric_name', 
-                'metric_value', 'created_at'
-            ])
-        
-        # Convert to period
-        valid_data['year_month'] = pd.to_datetime(valid_data['observed_date'], errors='coerce').dt.to_period('M')
-        period_data = valid_data.dropna(subset=['year_month'])
-        
-        if period_data.empty:
-            logger.warning("No valid period data for temporal aggregation")
-            return pd.DataFrame(columns=[
-                'aggregation_type', 'dimension_1', 'dimension_2', 'metric_name', 
-                'metric_value', 'created_at'
-            ])
-        
-        # Count observations by period
-        temporal_counts = period_data.groupby('year_month').size().reset_index()
-        temporal_counts.columns = ['period', 'observation_count']
-        
-        # Transform to gold layer format
-        temporal_aggs = pd.DataFrame({
-            'aggregation_type': 'temporal_summary',
-            'dimension_1': temporal_counts['period'].astype(str),
-            'dimension_2': None,
-            'metric_name': 'observation_count',
-            'metric_value': temporal_counts['observation_count'],
-            'created_at': datetime.now()
-        })
-        
-        logger.info(f"Created temporal aggregations for {len(temporal_aggs)} periods")
-        return temporal_aggs
-    
-    def _detect_rare_species(self, df: pd.DataFrame) -> pd.DataFrame:
+    def detect_rare_species(self, df: pd.DataFrame) -> pd.DataFrame:
         """Identify rare species based on observation frequency"""
-        if df is None or df.empty or 'common_name' not in df.columns:
+        if df is None or df.empty:
+            logger.warning("Empty dataframe provided for rare species detection")
+            return df
+        
+        if 'common_name' not in df.columns:
             logger.warning("Cannot detect rare species: missing common_name column")
             return df
         
-        # Filter out null species names
-        valid_species_df = df.dropna(subset=['common_name'])
+        # Calculate species observation counts
+        species_counts = df['common_name'].value_counts()
         
-        if valid_species_df.empty:
-            logger.warning("No valid species names for rare species detection")
+        # Define rare species threshold (bottom 20% or less than 3 observations)
+        rare_threshold = max(3, species_counts.quantile(0.2))
+        rare_species = species_counts[species_counts <= rare_threshold].index
+        
+        # Add rare species flag
+        df['is_rare_species'] = df['common_name'].isin(rare_species)
+        
+        logger.info(f"Identified {len(rare_species)} rare species out of {len(species_counts)} total species")
+        return df
+    
+    def aggregate_by_location(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Create location-based aggregations"""
+        if df is None or df.empty:
+            logger.warning("Empty dataframe provided for location aggregation")
             return df
         
-        species_counts = valid_species_df.groupby('common_name').size()
-        
-        if len(species_counts) < 2:
-            logger.info("Not enough species diversity for rare species analysis")
+        if 'location_description' not in df.columns:
+            logger.warning("Cannot create location aggregations: missing location_description column")
             return df
         
-        rare_threshold = species_counts.quantile(0.1)  # Bottom 10% by observation count
-        rare_species = species_counts[species_counts <= rare_threshold]
+        # Create location aggregations
+        location_data = df.dropna(subset=['location_description'])
+        if not location_data.empty:
+            # Add location-based metrics as new columns
+            location_stats = location_data.groupby('location_description').agg({
+                'common_name': 'nunique',  # species richness
+                'id': 'count',  # observation count
+                'quality_score': 'mean'  # average quality
+            }).add_prefix('location_')
+            
+            # Merge back to original data
+            df = df.merge(location_stats, left_on='location_description', right_index=True, how='left')
+            logger.info(f"Added location aggregations for {len(location_stats)} unique locations")
         
-        if not rare_species.empty:
-            rare_df = pd.DataFrame({
-                'dimension_1': rare_species.index,
-                'metric_value': rare_species.values,
-                'metric_name': 'rarity_score',
-                'aggregation_type': 'rare_species_detection',
-                'dimension_2': None,
-                'created_at': datetime.now()
-            })
+        return df
+    
+    def aggregate_by_time(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Create temporal aggregations"""
+        if df is None or df.empty:
+            logger.warning("Empty dataframe provided for temporal aggregation")
+            return df
+        
+        if 'observed_date' not in df.columns:
+            logger.warning("Cannot create temporal aggregations: missing observed_date column")
+            return df
+        
+        # Create temporal aggregations
+        date_data = df.dropna(subset=['observed_date']).copy()
+        if not date_data.empty:
+            # Parse dates and extract temporal components
+            date_data['parsed_date'] = pd.to_datetime(date_data['observed_date'], errors='coerce')
+            valid_dates = date_data.dropna(subset=['parsed_date'])
             
-            # Calculate rarity scores
-            rare_df['metric_value'] = 1 - (rare_df['metric_value'] / species_counts.max())
-            
-            logger.info(f"Identified {len(rare_df)} rare species")
-            return rare_df
-        else:
-            logger.info("No rare species identified")
-            return pd.DataFrame(columns=[
-                'aggregation_type', 'dimension_1', 'dimension_2', 'metric_name', 
-                'metric_value', 'created_at'
-            ])
+            if not valid_dates.empty:
+                valid_dates['year'] = valid_dates['parsed_date'].dt.year
+                valid_dates['month'] = valid_dates['parsed_date'].dt.month
+                valid_dates['day_of_year'] = valid_dates['parsed_date'].dt.dayofyear
+                
+                # Add temporal statistics
+                df = df.merge(
+                    valid_dates[['id', 'year', 'month', 'day_of_year']], 
+                    on='id', 
+                    how='left'
+                )
+                logger.info(f"Added temporal aggregations for {len(valid_dates)} records with valid dates")
+        
+        return df
     
     # QUALITY CHECK METHODS
     def _check_required_fields(self, df: pd.DataFrame) -> List[str]:

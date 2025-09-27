@@ -41,7 +41,7 @@ python-dotenv>=1.0.0
 # Step 4: Advanced Features (final step)
 # docker-compose
 # apache-airflow
-# streamlit
+streamlit>=1.28.0
 
 # Development Tools
 python-dotenv>=1.0.0

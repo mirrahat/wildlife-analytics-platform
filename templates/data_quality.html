@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Data Quality - Australian Wildlife Analytics{% endblock %}
+
+{% block content %}
+<div class="main-header">
+    <h1><i class="fas fa-chart-bar me-3"></i>Data Quality Dashboard</h1>
+    <p class="mb-0">Monitor data completeness, quality scores, and source validation</p>
+</div>
+
+<div class="row">
+    <!-- Data Completeness -->
+    <div class="col-lg-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Data Field Completeness</h5>
+            </div>
+            <div class="card-body">
+                <div id="completeness-chart-container">
+                    {% if silver_data %}
+                    <div class="loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading completeness data...</span>
+                        </div>
+                        <p class="mt-2">Analyzing data completeness...</p>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No quality data available. Run the ETL pipeline to generate quality metrics.
+                        <button class="btn btn-primary ms-3" onclick="runETL()">
+                            <i class="fas fa-play me-1"></i>Run ETL Pipeline
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if silver_data %}
+<div class="row">
+    <!-- Quality Score Distribution -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-star me-2"></i>Quality Score Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div id="quality-score-container">
+                    <div class="loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading quality scores...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Data Sources Breakdown -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-database me-2"></i>Data Sources Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div id="data-sources-container">
+                    <div class="loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading sources data...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Quality Summary -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>Data Quality Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row" id="quality-summary">
+                    <div class="col-md-3 mb-3">
+                        <div class="metric-card">
+                            <div class="metric-value">{{ "{:,}".format(silver_data|length) }}</div>
+                            <div class="metric-label">
+                                <i class="fas fa-database me-1"></i>Total Records
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="metric-card">
+                            <div class="metric-value" id="avg-quality">-</div>
+                            <div class="metric-label">
+                                <i class="fas fa-star me-1"></i>Average Quality
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="metric-card">
+                            <div class="metric-value" id="complete-records">-</div>
+                            <div class="metric-label">
+                                <i class="fas fa-check me-1"></i>Complete Records
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="metric-card">
+                            <div class="metric-value" id="data-sources-count">-</div>
+                            <div class="metric-label">
+                                <i class="fas fa-globe me-1"></i>Data Sources
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Quality Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Data Quality Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-primary w-100" onclick="runETL()">
+                            <i class="fas fa-sync me-1"></i>Refresh Quality Data
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-info w-100" onclick="exportQualityReport()">
+                            <i class="fas fa-download me-1"></i>Export Quality Report
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('multi_source_analytics') }}" class="btn btn-success w-100">
+                            <i class="fas fa-globe me-1"></i>Multi-Source Validation
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-warning w-100" onclick="runDataCleaning()">
+                            <i class="fas fa-broom me-1"></i>Run Data Cleaning
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Load data quality charts
+    async function loadDataQualityCharts() {
+        try {
+            const response = await fetch('/api/data-quality-charts');
+            const data = await response.json();
+            
+            if (data.error) {
+                showError('completeness-chart-container', data.error);
+                return;
+            }
+            
+            // Completeness chart
+            if (data.completeness_chart) {
+                Plotly.newPlot('completeness-chart-container', data.completeness_chart.data, data.completeness_chart.layout, {
+                    responsive: true,
+                    displayModeBar: false
+                });
+            }
+            
+            // Quality score distribution
+            if (data.quality_chart) {
+                Plotly.newPlot('quality-score-container', data.quality_chart.data, data.quality_chart.layout, {
+                    responsive: true,
+                    displayModeBar: false
+                });
+            }
+            
+            // Data sources pie chart
+            if (data.source_chart) {
+                Plotly.newPlot('data-sources-container', data.source_chart.data, data.source_chart.layout, {
+                    responsive: true,
+                    displayModeBar: false
+                });
+            }
+            
+        } catch (error) {
+            showError('completeness-chart-container', 'Error loading quality charts');
+        }
+    }
+    
+    // Export quality report
+    function exportQualityReport() {
+        showAlert('Quality report export functionality coming soon!', 'info');
+    }
+    
+    // Run data cleaning
+    function runDataCleaning() {
+        showAlert('Data cleaning functionality coming soon!', 'info');
+    }
+    
+    // Initialize data quality dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if we have data
+        {% if silver_data %}
+        loadDataQualityCharts();
+        {% endif %}
+    });
+</script>
+{% endblock %}

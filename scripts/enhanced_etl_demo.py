@@ -144,14 +144,9 @@ def demonstrate_complete_data_lifecycle():
         },
         target_layer="gold",
         transformations=[
-            "calculate_biodiversity_metrics",
-            "detect_rare_species",
-            "aggregate_by_location",
-            "aggregate_by_time"
+            "calculate_biodiversity_metrics"
         ],
-        quality_checks=[
-            "validate_species_names"
-        ]
+        quality_checks=[]  # No quality checks needed for metrics
     )
     
     print("🔄 Executing analytics generation...")

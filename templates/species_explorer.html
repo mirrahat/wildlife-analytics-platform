@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+
+{% block title %}Species Explorer - Australian Wildlife Analytics{% endblock %}
+
+{% block content %}
+<div class="main-header">
+    <h1><i class="fas fa-search me-3"></i>Species Explorer</h1>
+    <p class="mb-0">Explore individual species observations and patterns</p>
+</div>
+
+<!-- Species Selection -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list me-2"></i>Select Species</h5>
+            </div>
+            <div class="card-body">
+                {% if species_list %}
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="species-select" class="form-label">Choose a species to explore:</label>
+                        <select class="form-select" id="species-select" onchange="loadSpeciesData()">
+                            <option value="">-- Select a species --</option>
+                            {% for species in species_list %}
+                            <option value="{{ species }}">{{ species }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <button class="btn btn-primary" onclick="loadSpeciesData()" disabled id="explore-btn">
+                            <i class="fas fa-search me-1"></i>Explore Species
+                        </button>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No species data available. Run the ETL pipeline to load species observations.
+                    <button class="btn btn-primary ms-3" onclick="runETL()">
+                        <i class="fas fa-play me-1"></i>Run ETL Pipeline
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Species Details (Hidden initially) -->
+<div id="species-details" style="display: none;">
+    <!-- Species Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h3 class="mb-3" id="species-title"><i class="fas fa-paw me-2"></i>Species Overview</h3>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-value" id="total-observations">-</div>
+                <div class="metric-label">
+                    <i class="fas fa-eye me-1"></i>Total Observations
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-value" id="unique-locations">-</div>
+                <div class="metric-label">
+                    <i class="fas fa-map-marker-alt me-1"></i>Unique Locations
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-value" id="avg-quality-score">-</div>
+                <div class="metric-label">
+                    <i class="fas fa-star me-1"></i>Avg Quality Score
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="metric-card">
+                <div class="metric-value" id="observation-days">-</div>
+                <div class="metric-label">
+                    <i class="fas fa-calendar me-1"></i>Observation Days
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Species Charts -->
+    <div class="row">
+        <!-- Location Distribution -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-map-marked-alt me-2"></i>Top Locations</h5>
+                </div>
+                <div class="card-body">
+                    <div id="species-locations-container">
+                        <div class="loading">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading locations...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Timeline -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Observation Timeline</h5>
+                </div>
+                <div class="card-body">
+                    <div id="species-timeline-container">
+                        <div class="loading">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading timeline...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Observations -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Recent Observations</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="recent-observations-table">
+                            <thead>
+                                <tr>
+                                    <th>Location</th>
+                                    <th>Date</th>
+                                    <th>Observer</th>
+                                    <th>Quality Score</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Species Actions -->
+{% if species_list %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Species Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-primary w-100" onclick="exportSpeciesData()" disabled id="export-btn">
+                            <i class="fas fa-download me-1"></i>Export Species Data
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-info w-100" onclick="compareSpecies()" disabled id="compare-btn">
+                            <i class="fas fa-balance-scale me-1"></i>Compare Species
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('multi_source_analytics') }}" class="btn btn-success w-100">
+                            <i class="fas fa-globe me-1"></i>Multi-Source View
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-warning w-100" onclick="refreshSpeciesData()">
+                            <i class="fas fa-sync me-1"></i>Refresh Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let selectedSpecies = null;
+    
+    // Enable/disable explore button
+    function updateExploreButton() {
+        const select = document.getElementById('species-select');
+        const btn = document.getElementById('explore-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const compareBtn = document.getElementById('compare-btn');
+        
+        const hasSelection = select.value !== '';
+        btn.disabled = !hasSelection;
+        
+        if (exportBtn) exportBtn.disabled = !selectedSpecies;
+        if (compareBtn) compareBtn.disabled = !selectedSpecies;
+    }
+    
+    // Load species data
+    async function loadSpeciesData() {
+        const select = document.getElementById('species-select');
+        const speciesName = select.value;
+        
+        if (!speciesName) return;
+        
+        selectedSpecies = speciesName;
+        
+        try {
+            // Show loading
+            document.getElementById('species-details').style.display = 'block';
+            
+            const response = await fetch(`/api/species/${encodeURIComponent(speciesName)}`);
+            const data = await response.json();
+            
+            if (data.error) {
+                showAlert('Error loading species data: ' + data.error, 'danger');
+                return;
+            }
+            
+            // Update metrics
+            document.getElementById('species-title').innerHTML = `<i class="fas fa-paw me-2"></i>${speciesName} Overview`;
+            document.getElementById('total-observations').textContent = data.metrics.total_observations.toLocaleString();
+            document.getElementById('unique-locations').textContent = data.metrics.unique_locations.toLocaleString();
+            document.getElementById('avg-quality-score').textContent = data.metrics.avg_quality.toFixed(3);
+            document.getElementById('observation-days').textContent = data.metrics.observation_days.toLocaleString();
+            
+            // Load charts
+            if (data.location_chart) {
+                Plotly.newPlot('species-locations-container', data.location_chart.data, data.location_chart.layout, {
+                    responsive: true,
+                    displayModeBar: false
+                });
+            }
+            
+            if (data.timeline_chart) {
+                Plotly.newPlot('species-timeline-container', data.timeline_chart.data, data.timeline_chart.layout, {
+                    responsive: true,
+                    displayModeBar: false
+                });
+            }
+            
+            // Update recent observations table
+            const tbody = document.querySelector('#recent-observations-table tbody');
+            tbody.innerHTML = '';
+            
+            data.recent_observations.forEach(obs => {
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = obs.location_description || 'N/A';
+                row.insertCell(1).textContent = obs.observed_date || 'N/A';
+                row.insertCell(2).textContent = obs.observer_name || 'N/A';
+                row.insertCell(3).textContent = obs.quality_score ? obs.quality_score.toFixed(3) : 'N/A';
+            });
+            
+            updateExploreButton();
+            
+        } catch (error) {
+            showAlert('Error loading species data: ' + error.message, 'danger');
+        }
+    }
+    
+    // Export species data
+    function exportSpeciesData() {
+        if (!selectedSpecies) {
+            showAlert('Please select a species first', 'warning');
+            return;
+        }
+        showAlert('Species data export functionality coming soon!', 'info');
+    }
+    
+    // Compare species
+    function compareSpecies() {
+        if (!selectedSpecies) {
+            showAlert('Please select a species first', 'warning');
+            return;
+        }
+        showAlert('Species comparison functionality coming soon!', 'info');
+    }
+    
+    // Refresh species data
+    function refreshSpeciesData() {
+        if (selectedSpecies) {
+            loadSpeciesData();
+        } else {
+            refreshData();
+        }
+    }
+    
+    // Initialize species explorer
+    document.addEventListener('DOMContentLoaded', function() {
+        const select = document.getElementById('species-select');
+        if (select) {
+            select.addEventListener('change', updateExploreButton);
+            updateExploreButton();
+        }
+    });
+</script>
+{% endblock %}

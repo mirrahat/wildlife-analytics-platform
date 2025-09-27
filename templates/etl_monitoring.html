@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}ETL Monitoring - Australian Wildlife Analytics{% endblock %}
+
+{% block content %}
+<div class="main-header">
+    <h1><i class="fas fa-cogs me-3"></i>ETL Pipeline Monitoring</h1>
+    <p class="mb-0">Monitor and track ETL job executions and performance</p>
+</div>
+
+<div class="row">
+    <!-- ETL Job History -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent ETL Job Executions</h5>
+            </div>
+            <div class="card-body">
+                {% if etl_history %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Job Name</th>
+                                <th>Status</th>
+                                <th>Extracted</th>
+                                <th>Loaded</th>
+                                <th>Duration (s)</th>
+                                <th>Execution Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in etl_history %}
+                            <tr>
+                                <td>{{ job.job_name }}</td>
+                                <td>
+                                    {% if job.status == 'success' %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>Success
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times me-1"></i>Failed
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ "{:,}".format(job.records_extracted or 0) }}</td>
+                                <td>{{ "{:,}".format(job.records_loaded or 0) }}</td>
+                                <td>{{ "{:.2f}".format(job.duration_seconds or 0) }}</td>
+                                <td>{{ job.start_time }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No ETL job history found. Run the ETL pipeline to see monitoring data.
+                    <button class="btn btn-primary ms-3" onclick="runETL()">
+                        <i class="fas fa-play me-1"></i>Run ETL Pipeline
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Performance Charts -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Job Performance</h5>
+            </div>
+            <div class="card-body">
+                <div id="performance-charts-container">
+                    {% if etl_history %}
+                    <div class="loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading charts...</span>
+                        </div>
+                        <p class="mt-2">Loading performance data...</p>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        No performance data available.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if etl_history %}
+<!-- Performance Trends -->
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Duration Trends</h5>
+            </div>
+            <div class="card-body">
+                <div id="duration-trend-container">
+                    <div class="loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading trend...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Records Processed</h5>
+            </div>
+            <div class="card-body">
+                <div id="records-processed-container">
+                    <div class="loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading records chart...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ETL Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-tools me-2"></i>ETL Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-primary w-100" onclick="runETL()">
+                            <i class="fas fa-play me-1"></i>Run Full ETL Pipeline
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-warning w-100" onclick="runETLRepair()">
+                            <i class="fas fa-wrench me-1"></i>Run ETL Repair
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-info w-100" onclick="refreshData()">
+                            <i class="fas fa-sync me-1"></i>Refresh Monitoring Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Load ETL performance charts
+    async function loadPerformanceCharts() {
+        try {
+            const response = await fetch('/api/etl-performance');
+            const data = await response.json();
+            
+            if (data.error) {
+                showError('performance-charts-container', data.error);
+                return;
+            }
+            
+            // Create pie chart for job status
+            Plotly.newPlot('performance-charts-container', data.pie_chart.data, data.pie_chart.layout, {
+                responsive: true,
+                displayModeBar: false
+            });
+            
+            // Create duration trend chart
+            if (data.line_chart) {
+                Plotly.newPlot('duration-trend-container', data.line_chart.data, data.line_chart.layout, {
+                    responsive: true,
+                    displayModeBar: false
+                });
+            }
+            
+        } catch (error) {
+            showError('performance-charts-container', 'Error loading performance charts');
+        }
+    }
+    
+    // Run ETL repair
+    async function runETLRepair() {
+        showAlert('ETL repair functionality coming soon!', 'info');
+        // This could be connected to the ETL repair script
+    }
+    
+    // Initialize monitoring dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if etl_history %}
+        loadPerformanceCharts();
+        {% endif %}
+    });
+</script>
+{% endblock %}

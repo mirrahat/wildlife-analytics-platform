@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}Multi-Source Analytics - Australian Wildlife Analytics{% endblock %}
+
+{% block content %}
+<div class="main-header">
+    <h1><i class="fas fa-globe me-3"></i>Multi-Source Data Analytics</h1>
+    <p class="mb-0">Compare and analyze wildlife data from multiple biodiversity databases</p>
+</div>
+
+{% if has_data %}
+<!-- Source Metrics -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h3 class="mb-3"><i class="fas fa-chart-line me-2"></i>Multi-Source Overview</h3>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="metric-card">
+            <div class="metric-value" id="total-records">-</div>
+            <div class="metric-label">
+                <i class="fas fa-database me-1"></i>Total Records
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="metric-card">
+            <div class="metric-value" id="data-sources">-</div>
+            <div class="metric-label">
+                <i class="fas fa-globe me-1"></i>Data Sources
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="metric-card">
+            <div class="metric-value" id="unique-species">-</div>
+            <div class="metric-label">
+                <i class="fas fa-leaf me-1"></i>Unique Species
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="metric-card">
+            <div class="metric-value" id="date-range">-</div>
+            <div class="metric-label">
+                <i class="fas fa-calendar me-1"></i>Date Range (Days)
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Source Analysis Charts -->
+<div class="row">
+    <!-- Source Distribution -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Records by Data Source</h5>
+            </div>
+            <div class="card-body">
+                <div id="source-distribution-container">
+                    <div class="loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading source distribution...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quality Analysis -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-star me-2"></i>Data Quality by Source</h5>
+            </div>
+            <div class="card-body">
+                <div id="quality-analysis-container">
+                    <div class="loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading quality analysis...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Geographic Coverage -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-map me-2"></i>Geographic Coverage by Source</h5>
+            </div>
+            <div class="card-body">
+                <div id="geographic-map-container">
+                    <div class="loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading geographic map...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cross-Source Validation -->
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-check-double me-2"></i>Cross-Source Species Validation</h5>
+            </div>
+            <div class="card-body">
+                <div id="species-validation-container">
+                    <p class="text-muted">Species confirmed by multiple sources will appear here...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Validation Summary</h5>
+            </div>
+            <div class="card-body">
+                <div id="validation-summary-container">
+                    <div class="loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading validation data...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Options -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-download me-2"></i>Export Multi-Source Data</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-primary w-100" onclick="exportData('multisource_summary')">
+                            <i class="fas fa-chart-line me-1"></i>Export Summary CSV
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-success w-100" onclick="exportData('coordinates')">
+                            <i class="fas fa-map-marker-alt me-1"></i>Export Geographic Data
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <button class="btn btn-info w-100" onclick="exportData('full_dataset')">
+                            <i class="fas fa-database me-1"></i>Export Full Dataset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- No Data Available -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-database fa-3x text-muted mb-3"></i>
+                <h4>No Multi-Source Data Available</h4>
+                <p class="text-muted mb-4">Run the multi-source collector to gather data from multiple biodiversity databases.</p>
+                
+                <button class="btn btn-primary btn-lg me-3" onclick="runMultiSourceCollection()">
+                    <i class="fas fa-play me-2"></i>Run Multi-Source Collection
+                </button>
+                
+                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-lg">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Multi-Source Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Multi-Source Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-primary w-100" onclick="runMultiSourceCollection()">
+                            <i class="fas fa-sync me-1"></i>Collect Fresh Data
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-info w-100" onclick="validateCrossSources()">
+                            <i class="fas fa-check me-1"></i>Validate Cross-Sources
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-warning w-100" onclick="refreshAnalytics()">
+                            <i class="fas fa-chart-line me-1"></i>Refresh Analytics
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-success w-100" onclick="scheduledCollection()">
+                            <i class="fas fa-clock me-1"></i>Schedule Collection
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Load multi-source analytics data
+    async function loadMultiSourceAnalytics() {
+        try {
+            const response = await fetch('/api/multisource-analytics');
+            const data = await response.json();
+            
+            if (data.error) {
+                showError('source-distribution-container', data.error);
+                return;
+            }
+            
+            // Update metrics
+            document.getElementById('total-records').textContent = data.metrics.total_records.toLocaleString();
+            document.getElementById('data-sources').textContent = data.metrics.unique_sources.toLocaleString();
+            document.getElementById('unique-species').textContent = data.metrics.unique_species.toLocaleString();
+            document.getElementById('date-range').textContent = data.metrics.date_range.toLocaleString();
+            
+            // Load charts
+            if (data.source_distribution) {
+                Plotly.newPlot('source-distribution-container', data.source_distribution.data, data.source_distribution.layout, {
+                    responsive: true,
+                    displayModeBar: false
+                });
+            }
+            
+            if (data.quality_analysis) {
+                Plotly.newPlot('quality-analysis-container', data.quality_analysis.data, data.quality_analysis.layout, {
+                    responsive: true,
+                    displayModeBar: false
+                });
+            }
+            
+            if (data.geographic_map) {
+                Plotly.newPlot('geographic-map-container', data.geographic_map.data, data.geographic_map.layout, {
+                    responsive: true,
+                    displayModeBar: false
+                });
+            }
+            
+        } catch (error) {
+            console.error('Error loading multi-source analytics:', error);
+        }
+    }
+    
+    // Run multi-source collection
+    async function runMultiSourceCollection() {
+        try {
+            showAlert('Starting multi-source data collection...', 'info');
+            
+            const response = await fetch('/api/run-multisource', { method: 'POST' });
+            const result = await response.json();
+            
+            if (result.success) {
+                showAlert('Multi-source collection completed successfully!', 'success');
+                setTimeout(() => location.reload(), 3000);
+            } else {
+                showAlert('Multi-source collection failed: ' + result.error, 'danger');
+            }
+        } catch (error) {
+            showAlert('Error running multi-source collection: ' + error.message, 'danger');
+        }
+    }
+    
+    // Export data
+    async function exportData(dataType) {
+        try {
+            const response = await fetch(`/api/export/${dataType}`);
+            
+            if (response.ok) {
+                // Trigger download
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = response.headers.get('Content-Disposition')?.split('filename=')[1] || `export_${dataType}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                
+                showAlert('Export completed successfully!', 'success');
+            } else {
+                const error = await response.json();
+                showAlert('Export failed: ' + error.error, 'danger');
+            }
+        } catch (error) {
+            showAlert('Error exporting data: ' + error.message, 'danger');
+        }
+    }
+    
+    // Validate cross-sources
+    function validateCrossSources() {
+        showAlert('Cross-source validation functionality coming soon!', 'info');
+    }
+    
+    // Refresh analytics
+    function refreshAnalytics() {
+        location.reload();
+    }
+    
+    // Schedule collection
+    function scheduledCollection() {
+        showAlert('Scheduled collection functionality coming soon!', 'info');
+    }
+    
+    // Initialize multi-source analytics
+    document.addEventListener('DOMContentLoaded', function() {
+        // Only load if we have data
+        {% if has_data %}
+        loadMultiSourceAnalytics();
+        {% endif %}
+    });
+</script>
+{% endblock %}

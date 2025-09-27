@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Australian Wildlife Analytics{% endblock %}
+
+{% block content %}
+<div class="main-header">
+    <h1><i class="fas fa-leaf me-3"></i>Australian Wildlife Analytics Platform</h1>
+    <p class="mb-0">Enterprise ETL Pipeline & Biodiversity Data Explorer</p>
+</div>
+
+<!-- ETL Summary Metrics -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h3 class="mb-3"><i class="fas fa-chart-line me-2"></i>ETL Pipeline Status</h3>
+    </div>
+    
+    {% if etl_summary %}
+    <div class="col-md-2 col-sm-6 mb-3">
+        <div class="metric-card">
+            <div class="metric-value">{{ "{:,}".format(etl_summary.bronze_count) }}</div>
+            <div class="metric-label">
+                <i class="fas fa-database me-1"></i>Bronze (Raw Data)
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-2 col-sm-6 mb-3">
+        <div class="metric-card">
+            <div class="metric-value">{{ "{:,}".format(etl_summary.silver_count) }}</div>
+            <div class="metric-label">
+                <i class="fas fa-filter me-1"></i>Silver (Cleaned)
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-2 col-sm-6 mb-3">
+        <div class="metric-card">
+            <div class="metric-value">{{ "{:,}".format(etl_summary.gold_count) }}</div>
+            <div class="metric-label">
+                <i class="fas fa-gem me-1"></i>Gold (Analytics)
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-2 col-sm-6 mb-3">
+        <div class="metric-card">
+            <div class="metric-value">{{ "{:.3f}".format(etl_summary.avg_quality) }}</div>
+            <div class="metric-label">
+                <i class="fas fa-star me-1"></i>Avg Quality Score
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 col-sm-12 mb-3">
+        <div class="metric-card">
+            {% set success_rate = (etl_summary.successful_jobs / etl_summary.total_jobs * 100) if etl_summary.total_jobs > 0 else 0 %}
+            <div class="metric-value">{{ "{:.1f}%".format(success_rate) }}</div>
+            <div class="metric-label">
+                <i class="fas fa-check-circle me-1"></i>ETL Success Rate
+                <small class="d-block">{{ etl_summary.successful_jobs }}/{{ etl_summary.total_jobs }} jobs</small>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            No ETL data available. Run the ETL pipeline to generate metrics.
+            <button class="btn btn-primary ms-3" onclick="runETL()">
+                <i class="fas fa-play me-1"></i>Run ETL Pipeline
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Main Visualizations -->
+<div class="row">
+    <!-- Species Distribution Map -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-map-marked-alt me-2"></i>Species Distribution Map</h5>
+            </div>
+            <div class="card-body">
+                <div id="species-map-container">
+                    <div class="loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading map...</span>
+                        </div>
+                        <p class="mt-2">Loading species distribution...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Species Observations Chart -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Top Species</h5>
+            </div>
+            <div class="card-body">
+                <div id="species-observations-container">
+                    <div class="loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading chart...</span>
+                        </div>
+                        <p class="mt-2">Loading species data...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-primary w-100" onclick="runETL()">
+                            <i class="fas fa-play me-1"></i>Run ETL Pipeline
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-success w-100" onclick="runMultiSource()">
+                            <i class="fas fa-globe me-1"></i>Collect Multi-Source Data
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('etl_monitoring') }}" class="btn btn-info w-100">
+                            <i class="fas fa-cogs me-1"></i>Monitor ETL Jobs
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('species_explorer') }}" class="btn btn-warning w-100">
+                            <i class="fas fa-search me-1"></i>Explore Species
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Load species distribution map
+    async function loadSpeciesMap() {
+        try {
+            const response = await fetch('/api/species-map');
+            const data = await response.json();
+            
+            if (data.error) {
+                showError('species-map-container', data.error);
+                return;
+            }
+            
+            Plotly.newPlot('species-map-container', data.data, data.layout, {
+                responsive: true,
+                displayModeBar: false
+            });
+        } catch (error) {
+            showError('species-map-container', 'No location data available. Run the ETL pipeline first.');
+        }
+    }
+    
+    // Load species observations chart
+    async function loadSpeciesObservations() {
+        try {
+            const response = await fetch('/api/species-observations');
+            const data = await response.json();
+            
+            if (data.error) {
+                showError('species-observations-container', data.error);
+                return;
+            }
+            
+            Plotly.newPlot('species-observations-container', data.data, data.layout, {
+                responsive: true,
+                displayModeBar: false
+            });
+        } catch (error) {
+            showError('species-observations-container', 'No species data available. Run the ETL pipeline first.');
+        }
+    }
+    
+    // Run multi-source collection
+    async function runMultiSource() {
+        try {
+            const response = await fetch('/api/run-multisource', { method: 'POST' });
+            const result = await response.json();
+            
+            if (result.success) {
+                showAlert('Multi-source collection completed successfully!', 'success');
+                setTimeout(() => refreshData(), 2000);
+            } else {
+                showAlert('Multi-source collection failed: ' + result.error, 'danger');
+            }
+        } catch (error) {
+            showAlert('Error running multi-source collection: ' + error.message, 'danger');
+        }
+    }
+    
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        loadSpeciesMap();
+        loadSpeciesObservations();
+    });
+</script>
+{% endblock %}
