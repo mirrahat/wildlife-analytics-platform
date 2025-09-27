@@ -210,6 +210,166 @@ class WildlifeAnalyzer:
         except sqlite3.Error as e:
             print(f"Database error: {e}")
 
+    def explore_etl_layers(self):
+        """Explore data across ETL layers (Bronze, Silver, Gold)"""
+        print("\nETL DATA LAYERS ANALYSIS")
+        print("=" * 30)
+        
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Bronze Layer Analysis
+                print("\n🥉 BRONZE LAYER (Raw Data):")
+                print("-" * 25)
+                
+                cursor.execute("SELECT COUNT(*) FROM wildlife_bronze")
+                bronze_count = cursor.fetchone()[0]
+                print(f"Total raw records: {bronze_count}")
+                
+                if bronze_count > 0:
+                    cursor.execute('''
+                        SELECT source_system, COUNT(*) as count,
+                               MIN(datetime(extracted_at)) as first_extraction,
+                               MAX(datetime(extracted_at)) as last_extraction
+                        FROM wildlife_bronze 
+                        GROUP BY source_system
+                        ORDER BY count DESC
+                    ''')
+                    
+                    bronze_sources = cursor.fetchall()
+                    print("Sources breakdown:")
+                    for source, count, first, last in bronze_sources:
+                        print(f"  • {source}: {count} records ({first} to {last})")
+                
+                # Silver Layer Analysis
+                print("\n🥈 SILVER LAYER (Cleaned Data):")
+                print("-" * 27)
+                
+                cursor.execute("SELECT COUNT(*) FROM wildlife_silver")
+                silver_count = cursor.fetchone()[0]
+                print(f"Total cleaned records: {silver_count}")
+                
+                if silver_count > 0:
+                    # Quality score analysis
+                    cursor.execute('''
+                        SELECT 
+                            AVG(quality_score) as avg_quality,
+                            MIN(quality_score) as min_quality,
+                            MAX(quality_score) as max_quality,
+                            COUNT(CASE WHEN quality_score >= 0.8 THEN 1 END) as high_quality_count
+                        FROM wildlife_silver
+                    ''')
+                    
+                    quality_stats = cursor.fetchone()
+                    avg_qual, min_qual, max_qual, high_qual_count = quality_stats
+                    
+                    print(f"Quality Score Statistics:")
+                    print(f"  • Average quality: {avg_qual:.3f}")
+                    print(f"  • Quality range: {min_qual:.3f} to {max_qual:.3f}")
+                    print(f"  • High quality records (≥0.8): {high_qual_count} ({high_qual_count/silver_count*100:.1f}%)")
+                    
+                    # Top species in silver layer
+                    cursor.execute('''
+                        SELECT common_name, COUNT(*) as count, AVG(quality_score) as avg_quality
+                        FROM wildlife_silver 
+                        WHERE common_name IS NOT NULL
+                        GROUP BY common_name
+                        ORDER BY count DESC
+                        LIMIT 5
+                    ''')
+                    
+                    silver_species = cursor.fetchall()
+                    print(f"\nTop species (by observation count):")
+                    for species, count, avg_qual in silver_species:
+                        print(f"  • {species}: {count} observations (avg quality: {avg_qual:.3f})")
+                
+                # Gold Layer Analysis
+                print("\n🥇 GOLD LAYER (Analytics Data):")
+                print("-" * 28)
+                
+                cursor.execute("SELECT COUNT(*) FROM wildlife_gold")
+                gold_count = cursor.fetchone()[0]
+                print(f"Total analytics records: {gold_count}")
+                
+                if gold_count > 0:
+                    cursor.execute('''
+                        SELECT aggregation_type, COUNT(*) as count,
+                               MIN(datetime(created_at)) as first_created,
+                               MAX(datetime(created_at)) as last_created
+                        FROM wildlife_gold
+                        GROUP BY aggregation_type
+                        ORDER BY count DESC
+                    ''')
+                    
+                    gold_aggregations = cursor.fetchall()
+                    print("Analytics aggregations:")
+                    for agg_type, count, first, last in gold_aggregations:
+                        print(f"  • {agg_type}: {count} metrics (created {first} to {last})")
+                else:
+                    print("No analytics data available. Run ETL pipeline to generate gold layer data.")
+                
+                # Data Flow Summary
+                print(f"\nDATA FLOW SUMMARY:")
+                print(f"  Raw Data (Bronze)    → {bronze_count:,} records")
+                print(f"  Cleaned Data (Silver) → {silver_count:,} records")  
+                print(f"  Analytics (Gold)     → {gold_count:,} metrics")
+                
+                if bronze_count > 0 and silver_count > 0:
+                    processing_rate = (silver_count / bronze_count) * 100
+                    print(f"  Processing success rate: {processing_rate:.1f}%")
+                
+        except sqlite3.Error as e:
+            print(f"Database error: {e}")
+    
+    def show_etl_job_history(self):
+        """Show ETL job execution history"""
+        print("\nETL JOB EXECUTION HISTORY")
+        print("=" * 30)
+        
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute('''
+                    SELECT job_name, status, 
+                           records_extracted, records_transformed, records_loaded,
+                           datetime(start_time) as execution_time,
+                           ROUND((julianday(end_time) - julianday(start_time)) * 86400, 2) as duration_seconds
+                    FROM etl_job_executions
+                    ORDER BY start_time DESC
+                    LIMIT 10
+                ''')
+                
+                job_history = cursor.fetchall()
+                
+                if job_history:
+                    print("Recent ETL executions:")
+                    for job_name, status, extracted, transformed, loaded, exec_time, duration in job_history:
+                        print(f"\n• {job_name}")
+                        print(f"  Status: {status}")
+                        print(f"  Records: {extracted} → {transformed} → {loaded}")
+                        print(f"  Duration: {duration}s at {exec_time}")
+                    
+                    # Success rate calculation
+                    cursor.execute('''
+                        SELECT 
+                            COUNT(*) as total_jobs,
+                            COUNT(CASE WHEN status = 'success' THEN 1 END) as successful_jobs
+                        FROM etl_job_executions
+                    ''')
+                    
+                    total, successful = cursor.fetchone()
+                    if total > 0:
+                        success_rate = (successful / total) * 100
+                        print(f"\nOverall ETL Success Rate: {success_rate:.1f}% ({successful}/{total} jobs)")
+                
+                else:
+                    print("No ETL job history found. Run the ETL pipeline first.")
+                    
+        except sqlite3.Error as e:
+            print(f"Database error: {e}")
+
 def main():
     """Main function for interactive exploration"""
     analyzer = WildlifeAnalyzer()

@@ -1,23 +1,35 @@
-# Australian Biodiversity Platform Requirements
+# Enterprise Australian Biodiversity Platform Requirements
 
-# Core data collection
+# Core data processing and analysis
 requests>=2.31.0
 pandas>=2.0.0
+numpy>=1.24.0
 
-# Data visualization
+# Data visualization and dashboard
 matplotlib>=3.7.0
 seaborn>=0.12.0
 folium>=0.14.0
+plotly>=5.15.0
 
-# Optional: For future extensions
-# sqlalchemy>=2.0.0
-# psycopg2-binary>=2.9.0ian Biodiversity Platform - Step-by-Step Requirements
+# Web framework for dashboard
+Flask>=2.3.0
 
-# Step 1: Basic Data Collection
-requests>=2.31.0
-pandas>=2.0.0
+# Enterprise data management capabilities
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
 
-# Step 2: Data Storage (coming next)
+# Data quality and monitoring
+scipy>=1.11.0
+scikit-learn>=1.3.0
+
+# Configuration and utilities
+pyyaml>=6.0
+python-dotenv>=1.0.0
+
+# Optional: Advanced features
+# apache-airflow>=2.6.0  # For production scheduling
+# great-expectations>=0.17.0  # For advanced data quality
+# delta-spark>=2.4.0  # For Delta Lake format
 # sqlalchemy>=2.0.0
 # psycopg2-binary>=2.9.0
 
