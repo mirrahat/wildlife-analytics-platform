@@ -59,6 +59,114 @@ st.markdown("""
         border-radius: 8px;
         border: 1px solid #e9ecef;
     }
+    
+    /* Compact sidebar styling */
+    .css-1d391kg {
+        padding-top: 1rem;
+    }
+    
+    /* Make sidebar buttons smaller */
+    .stSidebar .stButton > button {
+        height: 35px !important;
+        padding: 4px 8px !important;
+        font-size: 14px !important;
+        margin-bottom: 4px !important;
+        line-height: 1.2 !important;
+    }
+    
+    /* Reduce sidebar title and text sizes */
+    .stSidebar h1 {
+        font-size: 20px !important;
+        margin-bottom: 10px !important;
+        padding-bottom: 5px !important;
+    }
+    
+    .stSidebar h2 {
+        font-size: 16px !important;
+        margin-bottom: 8px !important;
+        margin-top: 8px !important;
+    }
+    
+    .stSidebar h3 {
+        font-size: 14px !important;
+        margin-bottom: 6px !important;
+        margin-top: 6px !important;
+    }
+    
+    /* Reduce sidebar text and markdown spacing */
+    .stSidebar .stMarkdown {
+        margin-bottom: 4px !important;
+    }
+    
+    .stSidebar p {
+        font-size: 13px !important;
+        margin-bottom: 4px !important;
+    }
+    
+    /* Make sidebar metrics more compact */
+    .stSidebar .metric-container {
+        margin-bottom: 6px !important;
+    }
+    
+    /* Reduce sidebar selectbox height */
+    .stSidebar .stSelectbox {
+        margin-bottom: 6px !important;
+    }
+    
+    /* Compact sidebar sections */
+    .stSidebar hr {
+        margin: 8px 0 !important;
+    }
+    
+    /* Reduce caption text size */
+    .stSidebar .caption {
+        font-size: 11px !important;
+        margin-top: 2px !important;
+        margin-bottom: 6px !important;
+    }
+    
+    /* Sliding Developer Credit Popup */
+    .developer-popup {
+        position: fixed;
+        top: 20px;
+        right: -400px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 25px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        z-index: 999999;
+        font-family: 'Arial', sans-serif;
+        font-weight: bold;
+        font-size: 16px;
+        animation: slideInAndOut 6s ease-in-out;
+        white-space: nowrap;
+    }
+    
+    @keyframes slideInAndOut {
+        0% {
+            right: -400px;
+            opacity: 0;
+        }
+        15% {
+            right: 20px;
+            opacity: 1;
+        }
+        70% {
+            right: 20px;
+            opacity: 1;
+        }
+        100% {
+            right: -400px;
+            opacity: 0;
+        }
+    }
+    
+    .developer-popup::before {
+        content: "�";
+        margin-right: 10px;
+        font-size: 18px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1440,24 +1548,33 @@ def render_advanced_analytics():
     # Initialize analytics
     analytics = AdvancedWildlifeAnalytics()
     
-    # Control panel
-    with st.sidebar:
-        st.markdown("### 🔬 Analytics Controls")
-        
+    # Analytics Controls in main content area
+    st.subheader("Analytics Controls")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
         auto_run = st.checkbox("Auto-run analytics", value=True)
+    
+    with col2:
         min_observations = st.slider("Min observations for trends", 5, 50, 10)
+    
+    with col3:
         hotspot_radius = st.slider("Hotspot radius (km)", 10, 100, 50)
-        
-        if st.button("🚀 Run Full Analysis"):
+    
+    with col4:
+        if st.button("Run Full Analysis"):
             st.session_state.run_advanced_analytics = True
+    
+    st.markdown("---")
     
     # Main content tabs
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📊 Population Trends", 
-        "🌍 Biodiversity Hotspots", 
-        "🚨 Conservation Alerts", 
-        "📋 Ecosystem Health", 
-        "🤖 ML Insights"
+        "Population Trends", 
+        "Biodiversity Hotspots", 
+        "Conservation Alerts", 
+        "Ecosystem Health", 
+        "ML Insights"
     ])
     
     # Load data once
@@ -1875,9 +1992,21 @@ def main():
     import sys
     import os
     
-    # Sidebar navigation
-    st.sidebar.title("Navigation")
+    # Animated Developer Credit Popup
+    st.markdown("""
+    <div class="developer-popup">
+        Developed by - Mir Hasibul Hasan Rahat
+    </div>
+    """, unsafe_allow_html=True)
     
+    # Compact sidebar navigation
+    st.sidebar.title("Wildlife Analytics")
+    
+    # Initialize session state for page selection
+    if 'selected_page' not in st.session_state:
+        st.session_state.selected_page = "Dashboard"
+    
+    # Create navigation buttons with descriptions
     pages = {
         "Dashboard": render_main_dashboard,
         "ETL Monitoring": render_etl_monitoring,
@@ -1887,11 +2016,43 @@ def main():
         "Advanced Analytics": render_advanced_analytics
     }
     
-    selected_page = st.sidebar.selectbox("Select Page", list(pages.keys()))
+    # Compact page descriptions
+    page_descriptions = {
+        "Dashboard": "Overview & metrics",
+        "ETL Monitoring": "Pipeline status",
+        "Data Quality": "Data analysis",
+        "Species Explorer": "Species insights",
+        "Multi-Source Analytics": "Cross-platform data",
+        "Advanced Analytics": "ML analysis"
+    }
     
-    # ETL Pipeline Controls
+    # Current page indicator (more compact)
+    st.sidebar.markdown(f"**Active:** {st.session_state.selected_page}")
+    
+    # Navigation buttons (more compact)
+    
+    for i, page_name in enumerate(pages.keys(), 1):
+        # Use different styling for current page
+        button_type = "primary" if page_name == st.session_state.selected_page else "secondary"
+        
+        # Compact button label
+        button_label = f"{i}. {page_name}"
+        
+        if st.sidebar.button(
+            button_label, 
+            key=f"nav_{page_name}", 
+            use_container_width=True,
+            type=button_type,
+            help=page_descriptions.get(page_name, "")
+        ):
+            st.session_state.selected_page = page_name
+            st.rerun()  # Refresh to show new page immediately
+    
+    selected_page = st.session_state.selected_page
+    
+    # Compact ETL Controls
     st.sidebar.markdown("---")
-    st.sidebar.subheader("ETL Pipeline")
+    st.sidebar.subheader("ETL")
     
     col1, col2 = st.sidebar.columns(2)
     
@@ -1935,9 +2096,9 @@ def main():
             st.cache_data.clear()
             st.success("Data refreshed!")
     
-    # Quick Stats in Sidebar
+    # Compact Stats
     st.sidebar.markdown("---")
-    st.sidebar.subheader("Quick Stats")
+    st.sidebar.subheader("Stats")
     
     dashboard = WildlifeDashboard()
     etl_summary = dashboard.load_etl_layers_summary()
@@ -1957,7 +2118,8 @@ def main():
     st.markdown("---")
     st.markdown("""
     <div style='text-align: center; color: #666;'>
-        <p>🌿 Australian Biodiversity Analytics Platform | Built with Streamlit & Real Wildlife Data</p>
+        <p>Australian Biodiversity Analytics Platform | Built with Streamlit & Real Wildlife Data</p>
+        <p><strong>Developed by - Mir Hasibul Hasan Rahat</strong></p>
     </div>
     """, unsafe_allow_html=True)
 
