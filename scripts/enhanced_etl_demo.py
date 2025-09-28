@@ -29,9 +29,9 @@ from analysis.data_explorer import WildlifeAnalyzer
 def demonstrate_complete_data_lifecycle():
     """Demonstrate complete data lifecycle management"""
     
-    print("🌟 ENTERPRISE WILDLIFE DATA ETL PIPELINE")
-    print("=" * 55)
-    print("Demonstrating contemporary, enterprise-grade ETL operations")
+    print("Enterprise Wildlife Data ETL Pipeline")
+    print("=" * 40)
+    print("Demonstrating enterprise-grade ETL operations")
     print("for Australian Biodiversity Analytics Platform\n")
     
     # Initialize components
@@ -56,9 +56,9 @@ def demonstrate_complete_data_lifecycle():
     )
     
     print("🔄 Executing API data collection...")
-    print("   • Target species: Koala, Kangaroo, Echidna, Wombat, Platypus")
-    print("   • Data source: iNaturalist Live API")
-    print("   • Target layer: Bronze (raw data)")
+    print("   - Target species: Koala, Kangaroo, Echidna, Wombat, Platypus")
+    print("   - Data source: iNaturalist Live API")
+    print("   - Target layer: Bronze (raw data)")
     
     api_result = etl.run_etl_job(api_job)
     
@@ -101,10 +101,10 @@ def demonstrate_complete_data_lifecycle():
     )
     
     print("🔄 Executing data standardization...")
-    print("   • Source: Existing wildlife observations")
-    print("   • Transformations: Species names, coordinates, dates, locations")
-    print("   • Quality checks: 5 validation rules")
-    print("   • Target layer: Silver (clean, validated data)")
+    print("   - Source: Existing wildlife observations")
+    print("   - Transformations: Species names, coordinates, dates, locations")
+    print("   - Quality checks: 5 validation rules")
+    print("   - Target layer: Silver (clean, validated data)")
     
     standard_result = etl.run_etl_job(standardization_job)
     
@@ -150,9 +150,9 @@ def demonstrate_complete_data_lifecycle():
     )
     
     print("🔄 Executing analytics generation...")
-    print("   • Source: Silver layer validated data")
-    print("   • Analytics: Biodiversity metrics, rare species, spatial/temporal patterns")
-    print("   • Target layer: Gold (analytics-ready aggregations)")
+    print("   - Source: Silver layer validated data")
+    print("   - Analytics: Biodiversity metrics, rare species, spatial/temporal patterns")
+    print("   - Target layer: Gold (analytics-ready aggregations)")
     
     analytics_result = etl.run_etl_job(analytics_job)
     

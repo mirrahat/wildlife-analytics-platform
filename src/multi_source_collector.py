@@ -11,8 +11,13 @@ Data Sources:
 3. eBird - Cornell Lab bird observations
 4. Atlas of Living Australia (ALA) - Government data
 5. CITES - Trade monitoring data
-6. Australian Environmental Resource Information Network (ERIN)
-7. Parks Australia - Protected species data
+6. Australian Environmental Resource Information Network (ERIN)    safe_print("Multi-source data collection completed successfully.")
+    safe_print("-" * 50)
+    safe_print("Collection benefits:")
+    safe_print("- Enhanced data redundancy and reliability")
+    safe_print("- Cross-validation between multiple sources") 
+    safe_print("- Comprehensive species coverage")
+    safe_print("- Improved data quality through source prioritization")ks Australia - Protected species data
 """
 
 # Set up proper encoding for Windows compatibility
@@ -516,8 +521,8 @@ class MultiSourceCollector:
 
 def main():
     """Demonstrate multi-source data collection"""
-    safe_print("MULTI-SOURCE AUSTRALIAN WILDLIFE DATA COLLECTION")
-    safe_print("=" * 60)
+    safe_print("Multi-Source Australian Wildlife Data Collection")
+    safe_print("-" * 50)
     
     # Initialize collector
     collector = MultiSourceCollector()
@@ -541,8 +546,8 @@ def main():
     # Generate summary
     summary = collector.get_collection_summary(source_data)
     
-    safe_print("\nCOLLECTION SUMMARY")
-    safe_print("=" * 40)
+    safe_print("\nCollection Summary")
+    safe_print("-" * 20)
     safe_print(f"Total records collected: {summary['total_records']:,}")
     safe_print(f"Sources successfully used: {summary['sources_used']}")
     safe_print(f"Unique species found: {summary['unique_species']}")

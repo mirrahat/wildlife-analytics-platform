@@ -3,6 +3,7 @@
 <!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
 
 ## Project Context
+
 This is an Australian Biodiversity Analytics Platform for wildlife research. The project focuses on:
 
 - Collecting real Australian wildlife data from public APIs (iNaturalist, GBIF)
@@ -12,6 +13,7 @@ This is an Australian Biodiversity Analytics Platform for wildlife research. The
 - Step-by-step learning approach - building complexity gradually
 
 ## Technical Focus
+
 - Python-based data engineering
 - Real-time API data collection
 - Australian wildlife species and habitats
@@ -20,6 +22,7 @@ This is an Australian Biodiversity Analytics Platform for wildlife research. The
 - Southern Hemisphere seasonal patterns
 
 ## Code Style Guidelines
+
 - Use clear, educational code with comments explaining each step
 - Focus on Australian biodiversity use cases
 - Prioritize simplicity and understanding over complex optimizations

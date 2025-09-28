@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 # Page configuration
 st.set_page_config(
     page_title="Australian Wildlife Analytics",
-    page_icon="🦘",
+    page_icon="�",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -186,7 +186,7 @@ def render_main_dashboard():
     """Render the main dashboard"""
     
     st.markdown('<div class="main-header">', unsafe_allow_html=True)
-    st.title("🦘 Australian Wildlife Analytics Platform")
+    st.title("Australian Wildlife Analytics Platform")
     st.markdown("**Enterprise ETL Pipeline & Biodiversity Data Explorer**")
     st.markdown('</div>', unsafe_allow_html=True)
     
@@ -201,28 +201,28 @@ def render_main_dashboard():
         
         with col1:
             st.metric(
-                label="🥉 Bronze (Raw Data)",
+                label="Bronze Layer (Raw Data)",
                 value=f"{etl_summary['bronze_count']:,}",
                 help="Raw data records from APIs"
             )
         
         with col2:
             st.metric(
-                label="🥈 Silver (Cleaned)",
+                label="Silver Layer (Cleaned)",
                 value=f"{etl_summary['silver_count']:,}",
                 help="Validated and standardized records"
             )
         
         with col3:
             st.metric(
-                label="🥇 Gold (Analytics)",
+                label="Gold Layer (Analytics)",
                 value=f"{etl_summary['gold_count']:,}",
                 help="Analytics-ready aggregations"
             )
         
         with col4:
             st.metric(
-                label="📊 Avg Quality Score",
+                label="Average Quality Score",
                 value=f"{etl_summary['avg_quality']:.3f}",
                 help="Average data quality score (0-1)"
             )
@@ -233,7 +233,7 @@ def render_main_dashboard():
                 success_rate = (etl_summary['successful_jobs'] / etl_summary['total_jobs']) * 100
             
             st.metric(
-                label="✅ ETL Success Rate",
+                label="ETL Success Rate",
                 value=f"{success_rate:.1f}%",
                 help=f"{etl_summary['successful_jobs']}/{etl_summary['total_jobs']} jobs"
             )
@@ -244,7 +244,7 @@ def render_main_dashboard():
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.subheader("🗺️ Species Distribution Map")
+        st.subheader("Species Distribution Map")
         
         # Load silver layer data for mapping
         silver_data = dashboard.load_silver_layer_data()
@@ -277,7 +277,7 @@ def render_main_dashboard():
             st.info("No location data available. Run the ETL pipeline to process geographic data.")
     
     with col2:
-        st.subheader("📈 Species Observations")
+        st.subheader("Species Observations")
         
         if not silver_data.empty:
             species_counts = silver_data['common_name'].value_counts().head(10)
@@ -301,7 +301,7 @@ def render_etl_monitoring():
     import sys
     import os
     
-    st.header("🔄 ETL Pipeline Monitoring")
+    st.header("ETL Pipeline Monitoring")
     
     dashboard = WildlifeDashboard()
     etl_history = dashboard.load_etl_job_history()
@@ -315,8 +315,8 @@ def render_etl_monitoring():
             
             # Create status indicator
             etl_history['status_icon'] = etl_history['status'].map({
-                'success': '✅ Success',
-                'failed': '❌ Failed'
+                'success': 'Success',
+                'failed': 'Failed'
             })
             
             # Display job history table
@@ -351,7 +351,7 @@ def render_etl_monitoring():
                 st.plotly_chart(fig, use_container_width=True)
         
         # Performance trends
-        st.subheader("📊 Performance Trends")
+        st.subheader("Performance Trends")
         
         col1, col2 = st.columns(2)
         
@@ -385,7 +385,7 @@ def render_etl_monitoring():
     else:
         st.info("No ETL job history found. Run the ETL pipeline to see monitoring data.")
         
-        if st.button("🚀 Run ETL Pipeline Demo"):
+        if st.button("Run ETL Pipeline Demo"):
             with st.spinner("Running ETL pipeline..."):
                 # Integration point for ETL pipeline
                 
@@ -412,57 +412,57 @@ def render_etl_monitoring():
                     )
                     
                     if result.returncode == 0:
-                        st.success("✅ ETL pipeline execution completed successfully!")
+                        st.success("ETL pipeline execution completed successfully!")
                         
                         # Show key results from output
                         output_lines = result.stdout.split('\n')
                         success_lines = [line for line in output_lines if '✓' in line or 'SUCCESS' in line.upper()]
                         
                         if success_lines:
-                            st.subheader("📊 ETL Results:")
+                            st.subheader("ETL Results:")
                             for line in success_lines[-10:]:  # Show last 10 success messages
                                 if line.strip():
                                     st.text(line.strip())
                         
                         # Show full output in expandable section
-                        with st.expander("📋 View Full ETL Output"):
+                        with st.expander("View Full ETL Output"):
                             st.text(result.stdout[-2000:])  # Last 2000 chars
                         
                         # Refresh the dashboard data
                         st.cache_data.clear()
-                        st.info("🔄 Dashboard data refreshed. Navigate to other pages to see updated results!")
+                        st.info("Dashboard data refreshed. Navigate to other pages to see updated results!")
                         
                     else:
-                        st.error("❌ ETL pipeline failed!")
+                        st.error("ETL pipeline failed!")
                         st.subheader("Error Details:")
                         st.text(result.stderr)
                         
                         # Also show stdout in case there are useful messages
                         if result.stdout:
-                            with st.expander("📋 ETL Output (for debugging)"):
+                            with st.expander("ETL Output (for debugging)"):
                                 st.text(result.stdout[-1500:])
                 
                 except subprocess.TimeoutExpired:
                     st.error("⏰ ETL pipeline timed out after 3 minutes. This may indicate an issue with API connectivity.")
-                    st.info("💡 Try running the pipeline manually: `python scripts/enhanced_etl_demo.py`")
+                    st.info("Try running the pipeline manually: `python scripts/enhanced_etl_demo.py`")
                 
                 except Exception as e:
-                    st.error(f"❌ Error running ETL pipeline: {str(e)}")
+                    st.error(f"Error running ETL pipeline: {str(e)}")
                     
                     # Provide helpful debugging info
-                    st.subheader("🔧 Debugging Information:")
+                    st.subheader("Debugging Information:")
                     st.text(f"Current directory: {os.getcwd()}")
                     st.text(f"Python executable: {sys.executable}")
                     st.text(f"Script path: {script_path if 'script_path' in locals() else 'Not determined'}")
                     
                     # Suggest manual execution
-                    st.info("💡 **Manual Execution:** Try running in terminal:")
+                    st.info("**Manual Execution:** Try running in terminal:")
                     st.code("cd " + os.getcwd().replace('\\', '/') + "\npython scripts/enhanced_etl_demo.py")
 
 def render_data_quality_dashboard():
     """Render data quality dashboard"""
     
-    st.header("📊 Data Quality Dashboard")
+    st.header("Data Quality Dashboard")
     
     dashboard = WildlifeDashboard()
     silver_data = dashboard.load_silver_layer_data()
@@ -524,7 +524,7 @@ def render_data_quality_dashboard():
 def render_species_explorer():
     """Render species exploration interface"""
     
-    st.header("🐨 Species Explorer")
+    st.header("Species Explorer")
     
     dashboard = WildlifeDashboard()
     silver_data = dashboard.load_silver_layer_data()
@@ -559,7 +559,7 @@ def render_species_explorer():
             col1, col2 = st.columns(2)
             
             with col1:
-                st.subheader(f"📍 {selected_species} Locations")
+                st.subheader(f"{selected_species} Locations")
                 
                 location_counts = species_data['location_description'].value_counts().head(10)
                 
@@ -573,7 +573,7 @@ def render_species_explorer():
                 st.plotly_chart(fig, use_container_width=True)
             
             with col2:
-                st.subheader(f"📅 {selected_species} Timeline")
+                st.subheader(f"{selected_species} Timeline")
                 
                 if 'observed_date' in species_data.columns:
                     species_data['observed_date'] = pd.to_datetime(species_data['observed_date'])
@@ -588,7 +588,7 @@ def render_species_explorer():
                     st.plotly_chart(fig, use_container_width=True)
             
             # Recent observations table
-            st.subheader(f"🔍 Recent {selected_species} Observations")
+            st.subheader(f"Recent {selected_species} Observations")
             recent_observations = species_data.head(10)[
                 ['location_description', 'observed_date', 'observer_name', 'quality_score']
             ].rename(columns={
@@ -611,16 +611,16 @@ def render_multi_source_analytics():
     import sys
     import os
     
-    st.header("🌐 Multi-Source Data Lake Analytics")
+    st.header("Multi-Source Data Lake Analytics")
     st.markdown("**Enterprise Data Lake: Cross-platform biodiversity data integration & validation**")
     
     # Data Lake Architecture Overview
-    with st.expander("📋 Data Lake Architecture Overview", expanded=False):
+    with st.expander("Data Lake Architecture Overview", expanded=False):
         col1, col2, col3 = st.columns(3)
         
         with col1:
             st.markdown("""
-            **🥉 Bronze Layer (Raw Ingestion)**
+            **Bronze Layer (Raw Ingestion)**
             - Direct API feeds from multiple sources
             - iNaturalist, GBIF, eBird, ALA
             - Real-time data collection
@@ -629,7 +629,7 @@ def render_multi_source_analytics():
         
         with col2:
             st.markdown("""
-            **🥈 Silver Layer (Standardized)**
+            **Silver Layer (Standardized)**
             - Cross-source data harmonization
             - Species name standardization
             - Geographic coordinate validation
@@ -638,7 +638,7 @@ def render_multi_source_analytics():
         
         with col3:
             st.markdown("""
-            **🥇 Gold Layer (Analytics-Ready)**
+            **Gold Layer (Analytics-Ready)**
             - Multi-source species validation
             - Conservation status aggregation
             - Temporal trend analysis
@@ -683,7 +683,7 @@ def render_multi_source_analytics():
         
         if multisource_data.empty:
             # Enhanced multi-source data collection interface
-            st.warning("🔄 **Data Lake Status**: Multi-source Bronze layer is empty - Ready for first ingestion")
+            st.warning("**Data Lake Status**: Multi-source Bronze layer is empty - Ready for first ingestion")
             
             # Check if multi-source collector exists
             collector_path = os.path.join(os.getcwd(), "src", "multi_source_collector.py")
@@ -694,13 +694,13 @@ def render_multi_source_analytics():
             with col1:
                 if collector_exists:
                     st.info("""
-                    **🚀 Multi-Source Data Collection Pipeline**
+                    **Multi-Source Data Collection Pipeline**
                     
                     The data lake infrastructure is ready to ingest data from multiple biodiversity platforms:
-                    - **iNaturalist**: Citizen science observations (🌍 Global)
+                    - **iNaturalist**: Citizen science observations (Global)
                     - **GBIF**: Global biodiversity database (🏛️ Research-grade)
-                    - **eBird**: Bird observation network (🐦 Specialized)
-                    - **Atlas of Living Australia**: Australian species data (🇦🇺 Local focus)
+                    - **eBird**: Bird observation network (Specialized)
+                    - **Atlas of Living Australia**: Australian species data (Local focus)
                     
                     **Data Lake Layers:**
                     - **Bronze**: Raw API responses stored as-is
@@ -722,7 +722,7 @@ def render_multi_source_analytics():
             with col2:
                 st.metric("📡 Data Sources", "4", help="Available biodiversity APIs")
                 st.metric("🎯 Expected Records", "1000+", help="Estimated collection volume per run")
-                st.metric("🔧 Collector Status", "✅ Ready" if collector_exists else "❌ Missing", 
+                st.metric("Collector Status", "Ready" if collector_exists else "Missing", 
                          help="Multi-source collector availability")
             
             # Enhanced collection interface
@@ -730,7 +730,7 @@ def render_multi_source_analytics():
             
             with col1:
                 if collector_exists and st.button("🚀 **Start Data Lake Ingestion**", help="Run full multi-source collection"):
-                    with st.spinner("🔄 Running enterprise data lake ingestion pipeline..."):
+                    with st.spinner("Running enterprise data lake ingestion pipeline..."):
                         
                         try:
                             script_path = os.path.join(current_dir, "src", "multi_source_collector.py")
@@ -739,7 +739,7 @@ def render_multi_source_analytics():
                             progress_bar = st.progress(0)
                             status_text = st.empty()
                             
-                            status_text.text("🔄 Initializing data lake Bronze layer...")
+                            status_text.text("Initializing data lake Bronze layer...")
                             progress_bar.progress(20)
                             
                             result = subprocess.run(
@@ -756,11 +756,11 @@ def render_multi_source_analytics():
                             )
                             
                             progress_bar.progress(60)
-                            status_text.text("🔄 Processing Silver layer transformations...")
+                            status_text.text("Processing Silver layer transformations...")
                             time.sleep(1)
                             
                             progress_bar.progress(80)
-                            status_text.text("🔄 Finalizing Gold layer analytics...")
+                            status_text.text("Finalizing Gold layer analytics...")
                             time.sleep(1)
                             
                             if result.returncode == 0:
@@ -800,7 +800,7 @@ def render_multi_source_analytics():
                                                 st.text(line)
                                 
                                 # Show data lake status
-                                st.info("🔄 Refreshing dashboard to show new multi-source data...")
+                                st.info("Refreshing dashboard to show new multi-source data...")
                                 st.cache_data.clear()
                                 time.sleep(2)  # Brief pause for user to see results
                                 st.experimental_rerun()
@@ -810,7 +810,7 @@ def render_multi_source_analytics():
                                 st.text(result.stderr[:1000])  # Limit error text
                                 
                                 # Enhanced troubleshooting suggestions
-                                with st.expander("🔧 Troubleshooting Guide"):
+                                with st.expander("Troubleshooting Guide"):
                                     st.markdown("""
                                     **Common Issues & Solutions:**
                                     
@@ -846,7 +846,7 @@ def render_multi_source_analytics():
                             st.info("💡 Try running the collector manually from terminal for more details")
                 
                 elif not collector_exists:
-                    if st.button("🔧 **Create Multi-Source Collector**", help="Generate the missing collector module"):
+                    if st.button("**Create Multi-Source Collector**", help="Generate the missing collector module"):
                         st.info("""
                         **Missing Collector Module**
                         
@@ -906,7 +906,7 @@ def render_multi_source_analytics():
                         st.info("💡 Try initializing the data lake first")
             
             with col3:
-                if st.button("🔧 **Initialize Data Lake**", help="Set up multi-source tables"):
+                if st.button("**Initialize Data Lake**", help="Set up multi-source tables"):
                     with st.spinner("Setting up data lake infrastructure..."):
                         try:
                             # Create multi-source table if it doesn't exist
@@ -1220,7 +1220,7 @@ def render_multi_source_analytics():
                 st.plotly_chart(fig, use_container_width=True)
         
         with col2:
-            st.subheader("🔄 Data Freshness Analysis")
+            st.subheader("Data Freshness Analysis")
             
             # Calculate data freshness
             if 'collected_at' in multisource_data.columns:
@@ -1349,8 +1349,8 @@ def render_multi_source_analytics():
                 )
         
         with col4:
-            st.markdown("**🔄 Data Lake Admin**")
-            if st.button("🔧 Generate Data Catalog", help="Export complete data lake catalog"):
+            st.markdown("**Data Lake Admin**")
+            if st.button("Generate Data Catalog", help="Export complete data lake catalog"):
                 # Create comprehensive data catalog
                 catalog_data = {
                     'Data Lake Summary': {
@@ -1384,7 +1384,7 @@ def render_multi_source_analytics():
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("🔄 **Refresh Data Lake**", help="Re-run multi-source collection"):
+            if st.button("**Refresh Data Lake**", help="Re-run multi-source collection"):
                 st.info("💡 Use the 'Start Data Lake Ingestion' button above to refresh data")
         
         with col2:
@@ -1444,7 +1444,7 @@ def render_advanced_analytics():
     with st.sidebar:
         st.markdown("### 🔬 Analytics Controls")
         
-        auto_run = st.checkbox("🔄 Auto-run analytics", value=True)
+        auto_run = st.checkbox("Auto-run analytics", value=True)
         min_observations = st.slider("Min observations for trends", 5, 50, 10)
         hotspot_radius = st.slider("Hotspot radius (km)", 10, 100, 50)
         
@@ -1462,7 +1462,7 @@ def render_advanced_analytics():
     
     # Load data once
     if auto_run or st.session_state.get('run_advanced_analytics', False):
-        with st.spinner("🔄 Loading comprehensive wildlife data for advanced analysis..."):
+        with st.spinner("Loading comprehensive wildlife data for advanced analysis..."):
             try:
                 data = analytics.load_comprehensive_data()
                 
@@ -1876,22 +1876,22 @@ def main():
     import os
     
     # Sidebar navigation
-    st.sidebar.title("🦘 Navigation")
+    st.sidebar.title("Navigation")
     
     pages = {
-        "🏠 Dashboard": render_main_dashboard,
-        "🔄 ETL Monitoring": render_etl_monitoring,
-        "📊 Data Quality": render_data_quality_dashboard,
-        "🐨 Species Explorer": render_species_explorer,
-        "🌐 Multi-Source Analytics": render_multi_source_analytics,
-        "🧠 Advanced Analytics": render_advanced_analytics
+        "Dashboard": render_main_dashboard,
+        "ETL Monitoring": render_etl_monitoring,
+        "Data Quality": render_data_quality_dashboard,
+        "Species Explorer": render_species_explorer,
+        "Multi-Source Analytics": render_multi_source_analytics,
+        "Advanced Analytics": render_advanced_analytics
     }
     
     selected_page = st.sidebar.selectbox("Select Page", list(pages.keys()))
     
     # ETL Pipeline Controls
     st.sidebar.markdown("---")
-    st.sidebar.subheader("🚀 ETL Pipeline")
+    st.sidebar.subheader("ETL Pipeline")
     
     col1, col2 = st.sidebar.columns(2)
     
@@ -1937,7 +1937,7 @@ def main():
     
     # Quick Stats in Sidebar
     st.sidebar.markdown("---")
-    st.sidebar.subheader("📊 Quick Stats")
+    st.sidebar.subheader("Quick Stats")
     
     dashboard = WildlifeDashboard()
     etl_summary = dashboard.load_etl_layers_summary()
