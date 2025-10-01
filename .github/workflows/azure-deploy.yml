@@ -1,0 +1,96 @@
+name: Deploy Australian Wildlife Analytics Platform to Azure
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AZURE_WEBAPP_NAME: wildlife-analytics-app
+  AZURE_WEBAPP_PACKAGE_PATH: '.'
+  PYTHON_VERSION: '3.9'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🚀 Checkout code
+      uses: actions/checkout@v3
+      
+    - name: 🐍 Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: 📦 Create virtual environment and install dependencies
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: 🧪 Run basic tests
+      run: |
+        source venv/bin/activate
+        python -c "import streamlit; print('✅ Streamlit import successful')"
+        python -c "import pandas; print('✅ Pandas import successful')"
+        python -c "import plotly; print('✅ Plotly import successful')"
+        python -m py_compile streamlit_dashboard.py
+        echo "✅ Dashboard compilation successful"
+        
+    - name: 📁 Upload artifact for deployment jobs
+      uses: actions/upload-artifact@v3
+      with:
+        name: python-app
+        path: |
+          . 
+          !venv/
+
+  deploy-to-azure:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: 'production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+      
+    steps:
+    - name: 📁 Download artifact from build job
+      uses: actions/download-artifact@v3
+      with:
+        name: python-app
+        
+    - name: 🌐 Deploy to Azure Web App
+      id: deploy-to-webapp
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+        
+    - name: ✅ Deployment Success
+      run: |
+        echo "🎉 Australian Wildlife Analytics Platform deployed successfully!"
+        echo "🌐 URL: ${{ steps.deploy-to-webapp.outputs.webapp-url }}"
+        
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.ref == 'refs/heads/dev'
+    environment:
+      name: 'staging'
+      
+    steps:
+    - name: 📁 Download artifact from build job
+      uses: actions/download-artifact@v3
+      with:
+        name: python-app
+        
+    - name: 🧪 Deploy to Azure Web App (Staging)
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}-staging
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_STAGING }}
+        package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}

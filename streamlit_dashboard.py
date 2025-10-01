@@ -170,6 +170,75 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+def display_prominent_etl_message():
+    """Display a visually prominent ETL requirement message for recruiters"""
+    st.markdown("""
+    <div style="
+        background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+        background-size: 400% 400%;
+        animation: gradient 2s ease infinite, messagePulse 1.5s ease infinite;
+        padding: 25px;
+        border-radius: 20px;
+        text-align: center;
+        margin: 20px 0;
+        border: 4px solid #fff;
+        box-shadow: 0 0 25px rgba(255, 255, 255, 0.8), 0 8px 16px rgba(0,0,0,0.3);
+        position: relative;
+        overflow: hidden;
+    ">
+    <style>
+    @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    @keyframes blink {
+        0% { opacity: 1; }
+        50% { opacity: 0.3; }
+        100% { opacity: 1; }
+    }
+    @keyframes messagePulse {
+        0% { 
+            transform: scale(1);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.8), 0 8px 16px rgba(0,0,0,0.3);
+        }
+        50% { 
+            transform: scale(1.02);
+            box-shadow: 0 0 40px rgba(255, 255, 255, 1), 0 8px 16px rgba(0,0,0,0.3);
+        }
+        100% { 
+            transform: scale(1);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.8), 0 8px 16px rgba(0,0,0,0.3);
+        }
+    }
+    .blink-text {
+        animation: blink 1.5s infinite;
+        font-weight: bold;
+        font-size: 24px;
+        color: #2c2c54;
+        text-shadow: 2px 2px 4px rgba(255,255,255,0.8);
+    }
+    .important-note {
+        font-size: 18px;
+        color: #2c2c54;
+        font-weight: bold;
+        margin-top: 10px;
+        text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+    }
+    .demo-instruction {
+        font-size: 16px;
+        color: #2c2c54;
+        margin-top: 8px;
+        font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+    }
+    </style>
+    <div class="blink-text">⚠️ ATTENTION ⚠️</div>
+    <div class="important-note">Please click "Run ETL Demo" button from left sidebar to load data!</div>
+    <div class="demo-instruction">🔄 This demonstrates the complete data pipeline process</div>
+    </div>
+    """, unsafe_allow_html=True)
+
 class WildlifeDashboard:
     def __init__(self, db_path="data/aussie_wildlife.db"):
         self.db_path = db_path
@@ -344,7 +413,7 @@ class WildlifeDashboard:
         
         # If ETL hasn't been run in current session, always return False
         # This forces the user to run ETL in this session to see the "executed recently" status
-        return False, "Please click 'Run Demo' in left sidebar to execute data collection"
+        return False, "Please click 'Run ETL Demo' in left sidebar to execute data collection"
     
     def has_sufficient_data(self):
         """Check if we have sufficient data to show meaningful results"""
@@ -422,11 +491,11 @@ def render_main_dashboard():
     
     # Show ETL status banner and conditional content
     if not etl_executed or not has_data:
-        st.error("**Please click 'Run Demo' in left sidebar to execute data collection**")
+        display_prominent_etl_message()
         
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.info("**Step 1**: Please click 'Run Demo' in left sidebar")
+            st.info("**Step 1**: Please click 'Run ETL Demo' in left sidebar")
         with col2:
             st.info("**Step 2**: Wait for completion")
         with col3:
@@ -632,7 +701,7 @@ def render_etl_monitoring():
     has_data = dashboard.has_sufficient_data()
     
     if not etl_executed or not has_data:
-        st.error("**ETL Pipeline Required for Monitoring Dashboard**")
+        display_prominent_etl_message()
         st.info(f"**Status**: {etl_message}")
         
         col1, col2 = st.columns([2, 1])
@@ -815,7 +884,67 @@ def render_etl_monitoring():
     else:
         st.info("No ETL job history found. Run the ETL pipeline to see monitoring data.")
         
-        if st.button("Run ETL Pipeline Demo"):
+        # Create centered, prominent ETL button
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown("""
+            <style>
+            .stButton > button {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+                background-size: 400% 400% !important;
+                animation: mainButtonBlink 1.5s ease infinite, gradientPulse 3s ease infinite !important;
+                color: white !important;
+                font-weight: bold !important;
+                font-size: 20px !important;
+                border: 4px solid #fff !important;
+                border-radius: 40px !important;
+                padding: 25px 50px !important;
+                box-shadow: 0 0 30px rgba(255, 255, 255, 0.6), 0 15px 25px rgba(102, 126, 234, 0.4) !important;
+                text-transform: uppercase !important;
+                letter-spacing: 3px !important;
+                transition: all 0.3s ease !important;
+                width: 100% !important;
+                position: relative !important;
+                overflow: hidden !important;
+            }
+            .stButton > button:hover {
+                background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+                transform: translateY(-8px) scale(1.1) !important;
+                box-shadow: 0 0 50px rgba(255, 255, 255, 1), 0 20px 40px rgba(102, 126, 234, 0.8) !important;
+                border: 4px solid #ffff00 !important;
+            }
+            .stButton > button:before {
+                content: '' !important;
+                position: absolute !important;
+                top: -50% !important;
+                left: -50% !important;
+                width: 200% !important;
+                height: 200% !important;
+                background: linear-gradient(45deg, transparent, rgba(255,255,255,0.4), transparent) !important;
+                animation: shimmer 2.5s infinite !important;
+            }
+            @keyframes mainButtonBlink {
+                0% { opacity: 1; box-shadow: 0 0 30px rgba(255, 255, 255, 0.6), 0 15px 25px rgba(102, 126, 234, 0.4); }
+                50% { opacity: 0.8; box-shadow: 0 0 60px rgba(255, 255, 255, 1), 0 15px 25px rgba(102, 126, 234, 0.4); }
+                100% { opacity: 1; box-shadow: 0 0 30px rgba(255, 255, 255, 0.6), 0 15px 25px rgba(102, 126, 234, 0.4); }
+            }
+            @keyframes gradientPulse {
+                0% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
+            }
+            @keyframes shimmer {
+                0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+                100% { transform: translateX(150%) translateY(150%) rotate(45deg); }
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            # Add some spacing and visual enhancement
+            st.markdown("### 🚀 **Execute ETL Pipeline**")
+            st.markdown("*Click below to run the complete data collection and processing pipeline*")
+            
+        if col2.button("🔄 Run ETL Pipeline Demo", key="main_etl_button"):
             with st.spinner("Running ETL pipeline..."):
                 # Integration point for ETL pipeline
                 
@@ -843,6 +972,11 @@ def render_etl_monitoring():
                     
                     if result.returncode == 0:
                         st.success("ETL pipeline execution completed successfully!")
+                        
+                        # Set session state to mark ETL as completed
+                        st.session_state.etl_run_in_session = True
+                        st.session_state.etl_status = 'Success'
+                        st.session_state.etl_last_run = pd.Timestamp.now()
                         
                         # Show key results from output
                         output_lines = result.stdout.split('\n')
@@ -902,7 +1036,7 @@ def render_data_quality_dashboard():
     
     # Show ETL dependency warning if needed
     if not etl_executed or not has_data:
-        st.warning("**ETL Pipeline Required**")
+        display_prominent_etl_message()
         st.info(f"**Status**: {etl_message}")
         
         col1, col2 = st.columns([2, 1])
@@ -936,7 +1070,7 @@ def render_data_quality_dashboard():
             
             st.info("**Please run data collection** for complete analysis with quality charts, source comparisons, and detailed metrics!")
         else:
-            st.info("**No data available** - Please click 'Run Demo' in left sidebar to collect wildlife data.")
+            st.info("**No data available** - Please click 'Run ETL Demo' in left sidebar to collect wildlife data.")
             
         return  # Exit early if ETL not properly executed
     
@@ -1184,7 +1318,7 @@ def render_species_explorer():
     has_data = dashboard.has_sufficient_data()
     
     if not etl_executed or not has_data:
-        st.error("**ETL Pipeline Required for Species Explorer**")
+        display_prominent_etl_message()
         st.info(f"**Status**: {etl_message}")
         
         st.markdown("""
@@ -1195,7 +1329,7 @@ def render_species_explorer():
         """)
         
         if not has_data:
-            st.info("**No species data available** - Please click 'Run Demo' in left sidebar to collect wildlife observations")
+            st.info("**No species data available** - Please click 'Run ETL Demo' in left sidebar to collect wildlife observations")
         return
     
     st.success(f"**ETL Status**: {etl_message}")
@@ -1340,7 +1474,7 @@ def render_multi_source_analytics():
     has_data = dashboard.has_sufficient_data()
     
     if not etl_executed or not has_data:
-        st.error("**ETL Pipeline Required for Multi-Source Analytics**")
+        display_prominent_etl_message()
         st.info(f"**Status**: {etl_message}")
         
         st.markdown("""
@@ -1351,7 +1485,7 @@ def render_multi_source_analytics():
         """)
         
         if not has_data:
-            st.info("**No multi-source data available** - Please click 'Run Demo' in left sidebar to collect and integrate data from multiple sources")
+            st.info("**No multi-source data available** - Please click 'Run ETL Demo' in left sidebar to collect and integrate data from multiple sources")
         return
     
     st.success(f"**ETL Status**: {etl_message}")
@@ -2147,13 +2281,12 @@ def render_advanced_analytics():
         return
     
     # Check ETL execution status
-    from streamlit_dashboard import WildlifeDashboard
     dashboard = WildlifeDashboard()
     etl_executed, etl_message = dashboard.check_etl_execution_status()
     has_data = dashboard.has_sufficient_data()
     
     if not etl_executed or not has_data:
-        st.error("**ETL Pipeline Required for Advanced Analytics**")
+        display_prominent_etl_message()
         st.info(f"**Status**: {etl_message}")
         
         st.markdown("""
@@ -2623,6 +2756,186 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
+    # TOP PRIORITY: ETL & REFRESH BUTTONS WITH BLINKING BACKGROUNDS
+    # Initialize session state for ETL tracking
+    if 'etl_last_run' not in st.session_state:
+        st.session_state.etl_last_run = None
+    if 'etl_status' not in st.session_state:
+        st.session_state.etl_status = 'Not Run'
+    if 'etl_run_in_session' not in st.session_state:
+        st.session_state.etl_run_in_session = False
+    
+    # Check ETL status for button styling
+    dashboard_temp = WildlifeDashboard()
+    etl_executed, etl_message = dashboard_temp.check_etl_execution_status()
+    
+    # Create blinking background container for buttons
+    if etl_executed:
+        bg_color = "linear-gradient(45deg, #28a745, #20c997, #17a2b8, #28a745)"
+        button_text = "🔄 RE-RUN ETL DEMO"
+        status_text = ""
+    else:
+        bg_color = "linear-gradient(45deg, #dc3545, #fd7e14, #e83e8c, #dc3545)"
+        button_text = "🚀 RUN ETL DEMO"
+        status_text = ""
+    
+
+    
+    # Enhanced button styling with ETL button blinking
+    st.sidebar.markdown("""
+    <style>
+    /* Default button styling for all buttons */
+    .stButton > button {
+        background: linear-gradient(45deg, #fff, #f8f9fa) !important;
+        color: #333 !important;
+        font-weight: bold !important;
+        font-size: 16px !important;
+        border: 3px solid #333 !important;
+        border-radius: 25px !important;
+        padding: 15px 20px !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1px !important;
+        width: 100% !important;
+        margin: 5px 0 !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    /* Normal hover for all buttons */
+    .stButton > button:hover {
+        background: linear-gradient(45deg, #ffff00, #fff) !important;
+        transform: translateY(-3px) scale(1.05) !important;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.4) !important;
+        border: 3px solid #000 !important;
+    }
+    
+    /* Force blinking animation on specific buttons */
+    @keyframes buttonBlink {
+        0% { 
+            opacity: 1 !important;
+            border-color: #333 !important;
+            background: linear-gradient(45deg, #fff, #f8f9fa) !important;
+        }
+        50% { 
+            opacity: 0.6 !important;
+            border-color: #ff0000 !important;
+            background: linear-gradient(45deg, #ffcccc, #ffeeee) !important;
+            transform: scale(1.05) !important;
+        }
+        100% { 
+            opacity: 1 !important;
+            border-color: #333 !important;
+            background: linear-gradient(45deg, #fff, #f8f9fa) !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # JavaScript to make ETL button blink continuously
+    st.sidebar.markdown("""
+    <script>
+    function makeETLButtonBlink() {
+        setTimeout(function() {
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(function(button) {
+                if (button.textContent && (button.textContent.includes('RUN ETL DEMO') || button.textContent.includes('RE-RUN ETL DEMO'))) {
+                    button.style.animation = 'buttonBlink 1.2s ease-in-out infinite';
+                    button.style.animationDelay = '0s';
+                }
+            });
+            // Keep checking for new buttons
+            makeETLButtonBlink();
+        }, 1000);
+    }
+    makeETLButtonBlink();
+    </script>
+    """, unsafe_allow_html=True)
+    
+    # Main ETL Button
+    if st.sidebar.button(button_text, key="top_etl_button", help="Execute ETL pipeline to collect wildlife data"):
+        with st.spinner("🔄 Running ETL pipeline..."):
+            try:
+                current_dir = os.getcwd()
+                script_path = os.path.join(current_dir, "scripts", "enhanced_etl_demo.py")
+                st.session_state.etl_status = 'Running'
+                
+                result = subprocess.run(
+                    [sys.executable, script_path], 
+                    capture_output=True, 
+                    text=True,
+                    cwd=current_dir,
+                    timeout=120,
+                    encoding='utf-8',
+                    errors='replace',
+                    env=dict(os.environ, PYTHONIOENCODING='utf-8')
+                )
+                
+                if result.returncode == 0:
+                    st.sidebar.success("ETL demo completed!")
+                    st.session_state.etl_status = 'Success'
+                    st.session_state.etl_last_run = pd.Timestamp.now()
+                    st.session_state.etl_run_in_session = True
+                    st.cache_data.clear()
+                    st.sidebar.info("**Data refreshed!** Navigate to pages to see results.")
+                else:
+                    st.sidebar.error("ETL demo failed!")
+                    st.session_state.etl_status = 'Failed'
+                    
+            except subprocess.TimeoutExpired:
+                st.sidebar.error("⏰ ETL timed out. Try manual execution.")
+            except Exception as e:
+                st.sidebar.error(f"Error: {str(e)}")
+    
+    # Force ETL button to blink with more direct approach
+    st.sidebar.markdown("""
+    <style>
+    /* Target all buttons first, then use JavaScript to be specific */
+    div[data-testid="stSidebar"] button {
+        animation: none !important;
+    }
+    
+    /* Blinking animation specifically for ETL button */
+    .etl-blinking {
+        animation: etlBlink 1s ease-in-out infinite !important;
+    }
+    
+    @keyframes etlBlink {
+        0% { opacity: 1; border-color: #333; }
+        50% { opacity: 0.5; border-color: #ff0000; background: #ffcccc !important; }
+        100% { opacity: 1; border-color: #333; }
+    }
+    </style>
+    
+    <script>
+    // More aggressive approach to make ETL button blink
+    function forceETLBlink() {
+        const allButtons = document.querySelectorAll('button');
+        allButtons.forEach(btn => {
+            if (btn.textContent.includes('RUN ETL DEMO') || btn.textContent.includes('RE-RUN ETL DEMO')) {
+                btn.classList.add('etl-blinking');
+                // Force the animation directly on the style
+                btn.style.cssText += 'animation: etlBlink 1s ease-in-out infinite !important;';
+            }
+        });
+    }
+    
+    // Run immediately and keep running
+    forceETLBlink();
+    setInterval(forceETLBlink, 100);
+    
+    // Also run when page changes
+    document.addEventListener('DOMContentLoaded', forceETLBlink);
+    </script>
+    """, unsafe_allow_html=True)
+    
+    # Refresh Data Button
+    if st.sidebar.button("🔄 REFRESH DATA", key="top_refresh_button", help="Refresh dashboard data and clear cache"):
+        st.cache_data.clear()
+        st.sidebar.success("Data refreshed!")
+        st.rerun()
+    
+    st.sidebar.markdown("---")
+    
     # Compact sidebar navigation
     st.sidebar.title("Wildlife Analytics")
     
@@ -2673,91 +2986,6 @@ def main():
             st.rerun()  # Refresh to show new page immediately
     
     selected_page = st.session_state.selected_page
-    
-    # Compact ETL Controls
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("ETL")
-    
-    col1, col2 = st.sidebar.columns(2)
-    
-    with col1:
-        # Initialize session state for ETL tracking
-        if 'etl_last_run' not in st.session_state:
-            st.session_state.etl_last_run = None
-        if 'etl_status' not in st.session_state:
-            st.session_state.etl_status = 'Not Run'
-        if 'etl_run_in_session' not in st.session_state:
-            st.session_state.etl_run_in_session = False
-            
-        # Create enhanced ETL button
-        dashboard_temp = WildlifeDashboard()
-        etl_executed, etl_message = dashboard_temp.check_etl_execution_status()
-        
-        if etl_executed:
-            button_text = "Re-run ETL Demo"
-            button_help = "Re-execute ETL pipeline to refresh data"
-        else:
-            button_text = "Run ETL Demo"
-            button_help = "Execute ETL pipeline to collect wildlife data"
-            
-        if st.button(button_text, help=button_help):
-            with st.spinner("Running ETL pipeline..."):
-                
-                try:
-                    # Get the correct paths
-                    current_dir = os.getcwd()
-                    script_path = os.path.join(current_dir, "scripts", "enhanced_etl_demo.py")
-                    
-                    # Update session state
-                    st.session_state.etl_status = 'Running'
-                    
-                    # Run the ETL pipeline with proper encoding
-                    result = subprocess.run(
-                        [sys.executable, script_path], 
-                        capture_output=True, 
-                        text=True,
-                        cwd=current_dir,
-                        timeout=120,  # 2 minute timeout for sidebar
-                        encoding='utf-8',
-                        errors='replace',
-                        env=dict(os.environ, PYTHONIOENCODING='utf-8')
-                    )
-                    
-                    if result.returncode == 0:
-                        st.success("ETL demo completed!")
-                        st.session_state.etl_status = 'Success'
-                        st.session_state.etl_last_run = pd.Timestamp.now()
-                        st.session_state.etl_run_in_session = True  # Mark ETL as run in this session
-                        st.cache_data.clear()  # Refresh dashboard data
-                        st.info("**Data refreshed!** Navigate to other pages to see updated results.")
-                    else:
-                        st.error("ETL demo failed!")
-                        st.session_state.etl_status = 'Failed'
-                        if result.stderr:
-                            st.text(f"Error: {result.stderr[:200]}...")
-                
-                except subprocess.TimeoutExpired:
-                    st.error("⏰ ETL timed out. Try manual execution.")
-                except Exception as e:
-                    st.error(f"Error: {str(e)}")
-                    st.info("Try: `python scripts/enhanced_etl_demo.py`")
-    
-    with col2:
-        if st.button("Refresh Data", help="Refresh dashboard data"):
-            st.cache_data.clear()
-            st.success("Data refreshed!")
-    
-    # ETL Status Indicator
-    st.sidebar.markdown("---")
-    dashboard_temp = WildlifeDashboard()
-    etl_executed, etl_message = dashboard_temp.check_etl_execution_status()
-    
-    if etl_executed:
-        st.sidebar.success("ETL: Ready")
-        st.sidebar.caption("Wildlife data available")
-    else:
-        st.sidebar.error("ETL: Required")
-        st.sidebar.caption("Run ETL Demo first")
     
     # Compact Stats (conditional on ETL execution)
     st.sidebar.markdown("---")
