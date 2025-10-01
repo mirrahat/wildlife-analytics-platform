@@ -625,6 +625,49 @@ def render_etl_monitoring():
     st.header("ETL Pipeline Monitoring")
     
     dashboard = WildlifeDashboard()
+    
+    # Check ETL execution status
+    etl_executed, etl_message = dashboard.check_etl_execution_status()
+    has_data = dashboard.has_sufficient_data()
+    
+    if not etl_executed or not has_data:
+        st.error("🚨 **ETL Pipeline Required for Monitoring Dashboard**")
+        st.info(f"**Status**: {etl_message}")
+        
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.markdown("""
+            **To view ETL monitoring and job history:**
+            1. Click **"Run ETL Demo"** in the sidebar
+            2. Wait for pipeline execution
+            3. Return here to monitor ETL performance and job history
+            """)
+        
+        with col2:
+            st.markdown("**Current System:**")
+            if has_data:
+                st.warning("📊 Historical data exists")
+                st.info("🔄 Run ETL to see current session")
+            else:
+                st.error("❌ No ETL history available")
+        
+        # Show basic status without detailed history
+        st.markdown("---")
+        st.subheader("📋 System Status")
+        st.info("🚀 **ETL monitoring will show detailed job history after running ETL Demo**")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("ETL Status", "Pending", help="Run ETL Demo to activate")
+        with col2:
+            st.metric("Active Jobs", "---", help="Run ETL Demo to see jobs")
+        with col3:
+            st.metric("Success Rate", "---", help="Run ETL Demo to see metrics")
+        
+        return
+    
+    st.success(f"✅ **ETL Status**: {etl_message}")
+    
     etl_history = dashboard.load_etl_job_history()
     
     if not etl_history.empty:
@@ -2714,20 +2757,29 @@ def main():
         st.sidebar.error("⚠️ ETL: Required")
         st.sidebar.caption("Run ETL Demo first")
     
-    # Compact Stats
+    # Compact Stats (conditional on ETL execution)
     st.sidebar.markdown("---")
     st.sidebar.subheader("Stats")
     
-    dashboard = WildlifeDashboard()
-    etl_summary = dashboard.load_etl_layers_summary()
+    dashboard_temp = WildlifeDashboard()
+    etl_executed, _ = dashboard_temp.check_etl_execution_status()
     
-    if etl_summary:
-        st.sidebar.metric("Total Records", f"{etl_summary['silver_count']:,}")
-        st.sidebar.metric("Data Quality", f"{etl_summary['avg_quality']:.3f}")
+    if etl_executed:
+        # Show real stats only after ETL is run in current session
+        etl_summary = dashboard_temp.load_etl_layers_summary()
         
-        if etl_summary['total_jobs'] > 0:
-            success_rate = (etl_summary['successful_jobs'] / etl_summary['total_jobs']) * 100
-            st.sidebar.metric("ETL Success Rate", f"{success_rate:.1f}%")
+        if etl_summary:
+            st.sidebar.metric("Total Records", f"{etl_summary['silver_count']:,}")
+            st.sidebar.metric("Data Quality", f"{etl_summary['avg_quality']:.3f}")
+            
+            if etl_summary['total_jobs'] > 0:
+                success_rate = (etl_summary['successful_jobs'] / etl_summary['total_jobs']) * 100
+                st.sidebar.metric("ETL Success Rate", f"{success_rate:.1f}%")
+    else:
+        # Show placeholder stats before ETL is run
+        st.sidebar.metric("Total Records", "---", help="Run ETL Demo to see stats")
+        st.sidebar.metric("Data Quality", "---", help="Run ETL Demo to see stats")
+        st.sidebar.metric("ETL Success Rate", "---", help="Run ETL Demo to see stats")
     
     # Render selected page
     pages[selected_page]()
