@@ -344,7 +344,7 @@ class WildlifeDashboard:
         
         # If ETL hasn't been run in current session, always return False
         # This forces the user to run ETL in this session to see the "executed recently" status
-        return False, "ETL needs to be executed - click 'Run ETL Demo' to collect fresh wildlife data"
+        return False, "Please click 'Run Demo' in left sidebar to execute data collection"
     
     def has_sufficient_data(self):
         """Check if we have sufficient data to show meaningful results"""
@@ -410,6 +410,7 @@ def render_main_dashboard():
     
     st.markdown('<div class="main-header">', unsafe_allow_html=True)
     st.title("Australian Wildlife Analytics Platform")
+    st.markdown("**Developed by Mir Hasibul Hasan Rahat**")
     st.markdown("**Enterprise ETL Pipeline & Biodiversity Data Explorer**")
     st.markdown('</div>', unsafe_allow_html=True)
     
@@ -421,20 +422,20 @@ def render_main_dashboard():
     
     # Show ETL status banner and conditional content
     if not etl_executed or not has_data:
-        st.error("🚨 **ETL Pipeline Not Executed** - Click 'Run ETL Demo' in sidebar to collect wildlife data")
+        st.error("**Please click 'Run Demo' in left sidebar to execute data collection**")
         
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.info("📋 **Step 1**: Click sidebar 'Run ETL Demo'")
+            st.info("**Step 1**: Please click 'Run Demo' in left sidebar")
         with col2:
-            st.info("⏳ **Step 2**: Wait for completion")
+            st.info("**Step 2**: Wait for completion")
         with col3:
-            st.info("🎯 **Step 3**: Explore full dashboard")
+            st.info("**Step 3**: Explore full dashboard")
         
         # Show placeholder metrics when ETL not run
         st.markdown("---")
-        st.subheader("📊 Data Pipeline Metrics")
-        st.info("🚀 **Metrics will appear here after running ETL Demo**")
+        st.subheader("Data Pipeline Metrics")
+        st.info("**Metrics will appear here after running ETL Demo**")
         
         col1, col2, col3, col4, col5, col6 = st.columns(6)
         with col1:
@@ -451,11 +452,11 @@ def render_main_dashboard():
             st.metric("ETL Success Rate", "---", help="Run ETL Demo to see data")
         
         st.markdown("---")
-        st.warning("🔒 **All dashboard features locked** - Run ETL Demo to unlock data visualizations and analytics")
+        st.info("**Please run data collection first** - Click 'Run Demo' in left sidebar to unlock analytics")
         return  # Exit early, don't show any data
     
     else:
-        st.success(f"✅ **System Ready**: {etl_message}")
+        st.success(f"**System Ready**: {etl_message}")
         
         # Load ETL summary only when ETL has been executed
         etl_summary = dashboard.load_etl_layers_summary()
@@ -516,7 +517,7 @@ def render_main_dashboard():
         
         # Multi-Source Data Overview (only show when ETL executed)
         if etl_summary.get('multisource_count', 0) > 0:
-            st.subheader("🌐 Multi-Source Data Integration")
+            st.subheader("Multi-Source Data Integration")
             
             # Load and display source breakdown
             conn = dashboard.get_connection()
@@ -543,7 +544,7 @@ def render_main_dashboard():
                             st.plotly_chart(fig, use_container_width=True)
                     
                         with col2:
-                            st.markdown("**📊 Source Summary**")
+                            st.markdown("**Source Summary**")
                             for _, row in multisource_data.iterrows():
                                 source_icon = "🔵" if row['source'] == 'iNaturalist' else "🟢"
                                 st.markdown(f"{source_icon} **{row['source']}**: {row['count']:,} records")
@@ -631,14 +632,14 @@ def render_etl_monitoring():
     has_data = dashboard.has_sufficient_data()
     
     if not etl_executed or not has_data:
-        st.error("🚨 **ETL Pipeline Required for Monitoring Dashboard**")
+        st.error("**ETL Pipeline Required for Monitoring Dashboard**")
         st.info(f"**Status**: {etl_message}")
         
         col1, col2 = st.columns([2, 1])
         with col1:
             st.markdown("""
             **To view ETL monitoring and job history:**
-            1. Click **"Run ETL Demo"** in the sidebar
+            1. Please click **"Run Demo"** in the left sidebar
             2. Wait for pipeline execution
             3. Return here to monitor ETL performance and job history
             """)
@@ -646,15 +647,15 @@ def render_etl_monitoring():
         with col2:
             st.markdown("**Current System:**")
             if has_data:
-                st.warning("📊 Historical data exists")
-                st.info("🔄 Run ETL to see current session")
+                st.warning("Historical data exists")
+                st.info("Run ETL to see current session")
             else:
-                st.error("❌ No ETL history available")
+                st.error("No ETL history available")
         
         # Show basic status without detailed history
         st.markdown("---")
-        st.subheader("📋 System Status")
-        st.info("🚀 **ETL monitoring will show detailed job history after running ETL Demo**")
+        st.subheader("System Status")
+        st.info("**ETL monitoring will show detailed job history after running ETL Demo**")
         
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -666,13 +667,13 @@ def render_etl_monitoring():
         
         return
     
-    st.success(f"✅ **ETL Status**: {etl_message}")
+    st.success(f"**ETL Status**: {etl_message}")
     
     etl_history = dashboard.load_etl_job_history()
     
     if not etl_history.empty:
         # Enhanced ETL Job Status Overview with Multi-Source Context
-        st.subheader("🔄 ETL Pipeline Performance Dashboard")
+        st.subheader("ETL Pipeline Performance Dashboard")
         
         # Multi-source integration status
         multi_source_jobs = etl_history[etl_history['job_name'].str.contains('multi_source', case=False, na=False)]
@@ -681,21 +682,21 @@ def render_etl_monitoring():
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                st.metric("🌐 Multi-Source Status", 
-                         "✅ Active" if latest_multi_job['status'] == 'success' else "❌ Failed")
+                st.metric("Multi-Source Status", 
+                         "Active" if latest_multi_job['status'] == 'success' else "Failed")
             
             with col2:
-                st.metric("📊 Last Collection", 
+                st.metric("Last Collection", 
                          f"{latest_multi_job['records_loaded']:,} records")
             
             with col3:
-                st.metric("🕐 Last Updated", 
+                st.metric("Last Updated", 
                          pd.to_datetime(latest_multi_job['start_time']).strftime('%H:%M'))
             
             with col4:
                 sources_info = latest_multi_job.get('quality_issues', '')
                 source_count = sources_info.count(',') + 1 if ',' in str(sources_info) else 1
-                st.metric("🔌 Active Sources", source_count)
+                st.metric("Active Sources", source_count)
         
         # ETL Job History Table
         col1, col2 = st.columns([3, 1])
@@ -705,13 +706,13 @@ def render_etl_monitoring():
             
             # Enhanced job display with multi-source highlighting
             etl_history['job_type'] = etl_history['job_name'].apply(
-                lambda x: '🌐 Multi-Source' if 'multi_source' in str(x).lower() 
-                else '🔄 Standard ETL'
+                lambda x: 'Multi-Source' if 'multi_source' in str(x).lower() 
+                else 'Standard ETL'
             )
             
             etl_history['status_icon'] = etl_history['status'].map({
-                'success': '✅ Success',
-                'failed': '❌ Failed'
+                'success': 'Success',
+                'failed': 'Failed'
             })
             
             # Display enhanced job history table
@@ -746,8 +747,8 @@ def render_etl_monitoring():
                 standard_success_rate = (standard_jobs['status'] == 'success').mean() * 100 if not standard_jobs.empty else 0
                 
                 # Display success rates
-                st.metric("🌐 Multi-Source Success Rate", f"{multi_success_rate:.1f}%")
-                st.metric("🔄 Standard ETL Success Rate", f"{standard_success_rate:.1f}%")
+                st.metric("Multi-Source Success Rate", f"{multi_success_rate:.1f}%")
+                st.metric("Standard ETL Success Rate", f"{standard_success_rate:.1f}%")
                 
                 # Overall status pie chart
                 fig = px.pie(
@@ -759,7 +760,7 @@ def render_etl_monitoring():
                 st.plotly_chart(fig, use_container_width=True)
         
         # Enhanced Performance Trends
-        st.subheader("📈 Performance Trends & Multi-Source Analytics")
+        st.subheader("Performance Trends & Multi-Source Analytics")
         
         col1, col2 = st.columns(2)
         
@@ -774,7 +775,7 @@ def render_etl_monitoring():
                 color='job_type',
                 title="ETL Job Duration: Multi-Source vs Standard",
                 labels={'start_time': 'Execution Time', 'duration_seconds': 'Duration (seconds)'},
-                color_discrete_map={'🌐 Multi-Source': '#17a2b8', '🔄 Standard ETL': '#6c757d'}
+                color_discrete_map={'Multi-Source': '#17a2b8', 'Standard ETL': '#6c757d'}
             )
             st.plotly_chart(fig, use_container_width=True)
         
@@ -788,20 +789,20 @@ def render_etl_monitoring():
                 y='records_loaded',
                 color='job_type',
                 title="Records Processed by Job Type",
-                color_discrete_map={'🌐 Multi-Source': '#17a2b8', '🔄 Standard ETL': '#6c757d'}
+                color_discrete_map={'Multi-Source': '#17a2b8', 'Standard ETL': '#6c757d'}
             )
             fig.update_layout(xaxis_tickangle=45)
             st.plotly_chart(fig, use_container_width=True)
         
         # Multi-Source Performance Deep Dive
         if not multi_source_jobs.empty:
-            st.subheader("🌐 Multi-Source Collection Performance")
+            st.subheader("Multi-Source Collection Performance")
             
             col1, col2, col3 = st.columns(3)
             
             with col1:
                 avg_records = multi_source_jobs['records_loaded'].mean()
-                st.metric("📊 Avg Records per Collection", f"{avg_records:,.0f}")
+                st.metric("Avg Records per Collection", f"{avg_records:,.0f}")
             
             with col2:
                 avg_duration = multi_source_jobs['duration_seconds'].mean()
@@ -809,7 +810,7 @@ def render_etl_monitoring():
             
             with col3:
                 records_per_second = avg_records / avg_duration if avg_duration > 0 else 0
-                st.metric("🚀 Processing Rate", f"{records_per_second:.0f} rec/s")
+                st.metric("Processing Rate", f"{records_per_second:.0f} rec/s")
     
     else:
         st.info("No ETL job history found. Run the ETL pipeline to see monitoring data.")
@@ -901,7 +902,7 @@ def render_data_quality_dashboard():
     
     # Show ETL dependency warning if needed
     if not etl_executed or not has_data:
-        st.warning("⚠️ **ETL Pipeline Required**")
+        st.warning("**ETL Pipeline Required**")
         st.info(f"**Status**: {etl_message}")
         
         col1, col2 = st.columns([2, 1])
@@ -909,7 +910,7 @@ def render_data_quality_dashboard():
             st.markdown("""
             **To view complete data quality analysis, please:**
             1. Navigate to the sidebar
-            2. Click **"Run ETL Demo"** button  
+            2. Please click **"Run Demo"** button in left sidebar
             3. Wait for completion (may take 1-2 minutes)
             4. Return to this page for full analysis
             """)
@@ -917,13 +918,13 @@ def render_data_quality_dashboard():
         with col2:
             st.markdown("**Current Data Status:**")
             if has_data:
-                st.success("✅ Some data available")
+                st.success("Some data available")
             else:
-                st.error("❌ No data for analysis")
+                st.error("No data for analysis")
                 
         # Show minimal preview if data exists
         if has_data:
-            st.subheader("📊 Limited Data Preview")
+            st.subheader("Limited Data Preview")
             silver_data = dashboard.load_silver_layer_data() 
             multisource_data = dashboard.load_multisource_data()
             
@@ -933,14 +934,14 @@ def render_data_quality_dashboard():
             with col2:
                 st.metric("Multi-Source Records", len(multisource_data))
             
-            st.info("💡 **Run ETL Demo** for complete analysis with quality charts, source comparisons, and detailed metrics!")
+            st.info("**Please run data collection** for complete analysis with quality charts, source comparisons, and detailed metrics!")
         else:
-            st.error("🚫 **No data available** - Please run ETL Demo first to collect and process wildlife data.")
+            st.info("**No data available** - Please click 'Run Demo' in left sidebar to collect wildlife data.")
             
         return  # Exit early if ETL not properly executed
     
     # ETL executed successfully - show full dashboard
-    st.success(f"✅ **ETL Status**: {etl_message}")
+    st.success(f"**ETL Status**: {etl_message}")
     
     silver_data = dashboard.load_silver_layer_data()
     
@@ -948,7 +949,7 @@ def render_data_quality_dashboard():
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("🥈 Silver Layer Data Quality")
+        st.subheader("Silver Layer Data Quality")
         if not silver_data.empty and 'data_source' in silver_data.columns:
             silver_source_counts = silver_data['data_source'].value_counts()
             
@@ -967,7 +968,7 @@ def render_data_quality_dashboard():
             st.info("No silver layer data available")
     
     with col2:
-        st.subheader("🌐 Multi-Source Raw Data")
+        st.subheader("Multi-Source Raw Data")
         
         # Load actual multi-source data
         multisource_data = dashboard.load_multisource_data()
@@ -1053,16 +1054,16 @@ def render_data_quality_dashboard():
         
         # Quality assessment
         if overall_quality >= 80:
-            st.success("🌟 Excellent data quality!")
+            st.success("Excellent data quality!")
         elif overall_quality >= 60:
-            st.warning("⚠️ Good data quality with room for improvement")
+            st.warning("Good data quality with room for improvement")
         else:
-            st.error("❌ Data quality needs attention")
+            st.error("Data quality needs attention")
     
     # Comprehensive Multi-Source Quality Analysis
     multisource_data = dashboard.load_multisource_data()
     if not multisource_data.empty:
-        st.subheader("🌍 Multi-Source Quality Analysis")
+        st.subheader("Multi-Source Quality Analysis")
         st.write(f"**Analyzing {len(multisource_data)} records from 4 biodiversity APIs**")
         
         # Source-by-source quality analysis
@@ -1183,21 +1184,21 @@ def render_species_explorer():
     has_data = dashboard.has_sufficient_data()
     
     if not etl_executed or not has_data:
-        st.error("🚨 **ETL Pipeline Required for Species Explorer**")
+        st.error("**ETL Pipeline Required for Species Explorer**")
         st.info(f"**Status**: {etl_message}")
         
         st.markdown("""
         **To explore species data:**
-        1. Click **"Run ETL Demo"** in the sidebar
-        2. Wait for data collection and processing
+        1. Please click **"Run Demo"** in the left sidebar
+        2. Wait for data collection and processing  
         3. Return here to explore species observations
         """)
         
         if not has_data:
-            st.warning("🔒 **No species data available** - Run ETL Demo to collect wildlife observations")
+            st.info("**No species data available** - Please click 'Run Demo' in left sidebar to collect wildlife observations")
         return
     
-    st.success(f"✅ **ETL Status**: {etl_message}")
+    st.success(f"**ETL Status**: {etl_message}")
     
     silver_data = dashboard.load_silver_layer_data()
     
@@ -1299,6 +1300,7 @@ def render_multi_source_analytics():
     
     st.header("Multi-Source Data Lake Analytics")
     st.markdown("**Enterprise Data Lake: Cross-platform biodiversity data integration & validation**")
+    st.markdown("*Developed by Mir Hasibul Hasan Rahat*")
     
     # Data Lake Architecture Overview
     with st.expander("Data Lake Architecture Overview", expanded=False):
@@ -1338,21 +1340,21 @@ def render_multi_source_analytics():
     has_data = dashboard.has_sufficient_data()
     
     if not etl_executed or not has_data:
-        st.error("🚨 **ETL Pipeline Required for Multi-Source Analytics**")
+        st.error("**ETL Pipeline Required for Multi-Source Analytics**")
         st.info(f"**Status**: {etl_message}")
         
         st.markdown("""
         **To view multi-source analytics:**
-        1. Click **"Run ETL Demo"** in the sidebar
+        1. Please click **"Run Demo"** in the left sidebar
         2. Wait for multi-source data collection
         3. Return here for cross-platform analytics
         """)
         
         if not has_data:
-            st.warning("🔒 **No multi-source data available** - Run ETL Demo to collect and integrate data from multiple sources")
+            st.info("**No multi-source data available** - Please click 'Run Demo' in left sidebar to collect and integrate data from multiple sources")
         return
     
-    st.success(f"✅ **ETL Status**: {etl_message}")
+    st.success(f"**ETL Status**: {etl_message}")
     
     # Check for multi-source data
     conn = dashboard.get_connection()
@@ -1428,7 +1430,7 @@ def render_multi_source_analytics():
             
             with col2:
                 st.metric("📡 Data Sources", "4", help="Available biodiversity APIs")
-                st.metric("🎯 Expected Records", "1000+", help="Estimated collection volume per run")
+                st.metric("Expected Records", "1000+", help="Estimated collection volume per run")
                 st.metric("Collector Status", "Ready" if collector_exists else "Missing", 
                          help="Multi-source collector availability")
             
@@ -1436,7 +1438,7 @@ def render_multi_source_analytics():
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                if collector_exists and st.button("🚀 **Start Data Lake Ingestion**", help="Run full multi-source collection"):
+                if collector_exists and st.button("**Start Data Lake Ingestion**", help="Run full multi-source collection"):
                     with st.spinner("Running enterprise data lake ingestion pipeline..."):
                         
                         try:
@@ -1472,8 +1474,8 @@ def render_multi_source_analytics():
                             
                             if result.returncode == 0:
                                 progress_bar.progress(100)
-                                status_text.text("✅ Data lake ingestion completed!")
-                                st.success("🎉 **Multi-source data collection completed successfully!**")
+                                status_text.text("Data lake ingestion completed!")
+                                st.success("**Multi-source data collection completed successfully!**")
                                 
                                 # Show collection summary
                                 output_lines = result.stdout.split('\n')
@@ -1486,7 +1488,7 @@ def render_multi_source_analytics():
                                                'completed' in line.lower()]
                                 
                                 if success_lines:
-                                    with st.expander("📊 Collection Summary", expanded=True):
+                                    with st.expander("Collection Summary", expanded=True):
                                         for line in success_lines[-10:]:  # Show more lines for better summary
                                             if line.strip() and len(line.strip()) > 5:  # Filter out empty/short lines
                                                 st.text(line.strip())
@@ -1501,7 +1503,7 @@ def render_multi_source_analytics():
                                         summary_lines.append(line.strip())
                                 
                                 if summary_lines:
-                                    with st.expander("📋 Detailed Summary"):
+                                    with st.expander("Detailed Summary"):
                                         for line in summary_lines:
                                             if line:
                                                 st.text(line)
@@ -1512,7 +1514,7 @@ def render_multi_source_analytics():
                                 time.sleep(2)  # Brief pause for user to see results
                                 st.experimental_rerun()
                             else:
-                                st.error("❌ **Data lake ingestion failed!**")
+                                st.error("**Data lake ingestion failed!**")
                                 st.text("**Error Details:**")
                                 st.text(result.stderr[:1000])  # Limit error text
                                 
@@ -1547,10 +1549,10 @@ def render_multi_source_analytics():
                         except subprocess.TimeoutExpired:
                             st.error("⏰ **Data lake ingestion timed out** (5 minutes)")
                             st.warning("This might indicate API rate limiting or network issues.")
-                            st.info("💡 Try running manually: `python src/multi_source_collector.py`")
+                            st.info("Try running manually: `python src/multi_source_collector.py`")
                         except Exception as e:
-                            st.error(f"❌ **System Error**: {e}")
-                            st.info("💡 Try running the collector manually from terminal for more details")
+                            st.error(f"**System Error**: {e}")
+                            st.info("Try running the collector manually from terminal for more details")
                 
                 elif not collector_exists:
                     if st.button("**Create Multi-Source Collector**", help="Generate the missing collector module"):
@@ -1576,10 +1578,10 @@ def render_multi_source_analytics():
                             if os.path.exists(path):
                                 st.success(f"Found alternative collector: {path}")
                             else:
-                                st.text(f"❌ Not found: {path}")
+                                st.text(f"Not found: {path}")
             
             with col2:
-                if st.button("📋 **View Collection Status**", help="Check data lake ingestion history"):
+                if st.button("**View Collection Status**", help="Check data lake ingestion history"):
                     # Check for any existing collection attempts
                     try:
                         # First check if table has any data
@@ -1593,7 +1595,7 @@ def render_multi_source_analytics():
                                 GROUP BY source
                             """, conn)
                             
-                            st.subheader("📈 Previous Collections")
+                            st.subheader("Previous Collections")
                             st.dataframe(status_data, use_container_width=True)
                             
                             # Additional stats
@@ -1610,7 +1612,7 @@ def render_multi_source_analytics():
                             """)
                     except Exception as e:
                         st.warning(f"Unable to check collection status: {e}")
-                        st.info("💡 Try initializing the data lake first")
+                        st.info("Try initializing the data lake first")
             
             with col3:
                 if st.button("**Initialize Data Lake**", help="Set up multi-source tables"):
@@ -1636,7 +1638,7 @@ def render_multi_source_analytics():
                                 )
                             """)
                             conn.commit()
-                            st.success("✅ Data lake infrastructure initialized!")
+                            st.success("Data lake infrastructure initialized!")
                         except Exception as e:
                             st.error(f"Error initializing data lake: {e}")
             
@@ -1655,7 +1657,7 @@ def render_multi_source_analytics():
         
         with col2:
             unique_sources = multisource_data['source'].nunique()
-            st.metric("🔌 Active Sources", unique_sources, help="Connected biodiversity APIs")
+            st.metric("Active Sources", unique_sources, help="Connected biodiversity APIs")
         
         with col3:
             unique_species = multisource_data['scientific_name'].nunique()
@@ -1685,7 +1687,7 @@ def render_multi_source_analytics():
             ) * 100
             
             st.metric(
-                "🎯 Data Completeness", 
+                "Data Completeness", 
                 f"{completeness_score:.1f}%",
                 help="Overall data quality across all fields"
             )
@@ -1697,7 +1699,7 @@ def render_multi_source_analytics():
             validation_rate = (validated_species / len(species_source_matrix)) * 100
             
             st.metric(
-                "✅ Cross-Validation", 
+                "Cross-Validation", 
                 f"{validation_rate:.1f}%",
                 help="Species confirmed by multiple sources"
             )
@@ -1719,7 +1721,7 @@ def render_multi_source_analytics():
         st.markdown("---")
         
         # Enhanced Data Lake Visualizations
-        st.subheader("📈 Data Lake Analytics")
+        st.subheader("Data Lake Analytics")
         
         # Source distribution and volume analysis
         col1, col2 = st.columns(2)
@@ -1748,7 +1750,7 @@ def render_multi_source_analytics():
             st.plotly_chart(fig, use_container_width=True)
         
         with col2:
-            st.markdown("**🌟 Silver Layer: Data Quality Assessment**")
+            st.markdown("**Silver Layer: Data Quality Assessment**")
             # Enhanced quality metrics calculation
             quality_by_source = []
             
@@ -1812,7 +1814,7 @@ def render_multi_source_analytics():
             st.plotly_chart(fig, use_container_width=True)
         
         # Enhanced Geographic Data Lake Analysis
-        st.subheader("🗺️ Gold Layer: Geospatial Data Lake Analytics")
+        st.subheader("️ Gold Layer: Geospatial Data Lake Analytics")
         
         # Filter data with valid coordinates
         geo_data = multisource_data.dropna(subset=['latitude', 'longitude'])
@@ -1950,7 +1952,7 @@ def render_multi_source_analytics():
                 st.plotly_chart(fig, use_container_width=True)
         
         # Cross-source species validation
-        st.subheader("🔍 Cross-Source Species Validation")
+        st.subheader("Cross-Source Species Validation")
         
         # Find species reported by multiple sources
         species_source_matrix = multisource_data.groupby(['scientific_name', 'source']).size().unstack(fill_value=0)
@@ -2013,8 +2015,8 @@ def render_multi_source_analytics():
                 )
         
         with col2:
-            st.markdown("**🗺️ Silver Layer Export**")
-            if st.button("🎯 Geospatial Export", help="Export Silver layer (processed geographic data)"):
+            st.markdown("**Silver Layer Export**")
+            if st.button("Geospatial Export", help="Export Silver layer (processed geographic data)"):
                 if not geo_data.empty:
                     geo_export = geo_data[['source', 'scientific_name', 'common_name', 
                                          'latitude', 'longitude', 'location_description', 
@@ -2049,7 +2051,7 @@ def render_multi_source_analytics():
                 
                 csv = analytics_data.to_csv(index=False)
                 st.download_button(
-                    label="📈 Download Analytics Data",
+                    label="Download Analytics Data",
                     data=csv,
                     file_name=f"datalake_gold_analytics_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
                     mime="text/csv"
@@ -2078,7 +2080,7 @@ def render_multi_source_analytics():
                 
                 catalog_json = json.dumps(catalog_data, indent=2)
                 st.download_button(
-                    label="📋 Download Data Catalog",
+                    label="Download Data Catalog",
                     data=catalog_json,
                     file_name=f"datalake_catalog_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
                     mime="application/json"
@@ -2086,16 +2088,16 @@ def render_multi_source_analytics():
         
         # Data lake management actions
         st.markdown("---")
-        st.subheader("⚙️ Data Lake Management")
+        st.subheader("️ Data Lake Management")
         
         col1, col2, col3 = st.columns(3)
         
         with col1:
             if st.button("**Refresh Data Lake**", help="Re-run multi-source collection"):
-                st.info("💡 Use the 'Start Data Lake Ingestion' button above to refresh data")
+                st.info("Use the 'Start Data Lake Ingestion' button above to refresh data")
         
         with col2:
-            if st.button("🧹 **Clean Silver Layer**", help="Remove low-quality records"):
+            if st.button("**Clean Silver Layer**", help="Remove low-quality records"):
                 try:
                     cursor = conn.cursor()
                     cursor.execute("""
@@ -2106,14 +2108,14 @@ def render_multi_source_analytics():
                     """)
                     deleted_count = cursor.rowcount
                     conn.commit()
-                    st.success(f"✅ Cleaned {deleted_count} low-quality records from Silver layer")
+                    st.success(f"Cleaned {deleted_count} low-quality records from Silver layer")
                     st.cache_data.clear()
                 except Exception as e:
                     st.error(f"Error cleaning data: {e}")
         
         with col3:
-            if st.button("📊 **Update Gold Analytics**", help="Regenerate analytics aggregations"):
-                st.info("💡 Gold layer analytics are updated automatically with each collection cycle")
+            if st.button("**Update Gold Analytics**", help="Regenerate analytics aggregations"):
+                st.info("Gold layer analytics are updated automatically with each collection cycle")
         
         conn.close()
         
@@ -2124,7 +2126,7 @@ def render_multi_source_analytics():
 
 def render_advanced_analytics():
     """Advanced Machine Learning and Conservation Analytics Page"""
-    st.markdown('<div class="main-header"><h1>🧠 Advanced Analytics & Machine Learning</h1></div>', 
+    st.markdown('<div class="main-header"><h1>Advanced Analytics & Machine Learning</h1></div>', 
                 unsafe_allow_html=True)
     
     st.markdown("""
@@ -2136,7 +2138,7 @@ def render_advanced_analytics():
         from src.advanced_analytics import AdvancedWildlifeAnalytics
         analytics_available = True
     except ImportError:
-        st.error("❌ Advanced analytics module not available. Please install required dependencies:")
+        st.error("Advanced analytics module not available. Please install required dependencies:")
         st.code("pip install scikit-learn", language="bash")
         analytics_available = False
         return
@@ -2151,7 +2153,7 @@ def render_advanced_analytics():
     has_data = dashboard.has_sufficient_data()
     
     if not etl_executed or not has_data:
-        st.error("🚨 **ETL Pipeline Required for Advanced Analytics**")
+        st.error("**ETL Pipeline Required for Advanced Analytics**")
         st.info(f"**Status**: {etl_message}")
         
         st.markdown("""
@@ -2162,10 +2164,10 @@ def render_advanced_analytics():
         """)
         
         if not has_data:
-            st.warning("🔒 **No data available for ML analysis** - Run ETL Demo to collect biodiversity data")
+            st.warning("**No data available for ML analysis** - Run ETL Demo to collect biodiversity data")
         return
     
-    st.success(f"✅ **ETL Status**: {etl_message}")
+    st.success(f"**ETL Status**: {etl_message}")
     
     # Initialize analytics
     analytics = AdvancedWildlifeAnalytics()
@@ -2206,14 +2208,14 @@ def render_advanced_analytics():
                 data = analytics.load_comprehensive_data()
                 
                 if data.empty:
-                    st.warning("⚠️ No data available for advanced analysis. Please run ETL pipeline first.")
+                    st.warning("️ No data available for advanced analysis. Please run ETL pipeline first.")
                     return
                 
-                st.success(f"✅ Loaded {len(data)} records for {data['species'].nunique()} species")
+                st.success(f"Loaded {len(data)} records for {data['species'].nunique()} species")
                 
                 # Population Trends Tab
                 with tab1:
-                    st.subheader("📈 Species Population Trend Analysis")
+                    st.subheader("Species Population Trend Analysis")
                     
                     with st.spinner("Analyzing population trends..."):
                         trends = analytics.analyze_population_trends(data, min_observations)
@@ -2229,19 +2231,19 @@ def render_advanced_analytics():
                         col1, col2, col3, col4 = st.columns(4)
                         
                         with col1:
-                            st.metric("📉 Declining Species", trend_summary['declining'], 
+                            st.metric("Declining Species", trend_summary['declining'], 
                                      delta=-trend_summary['declining'] if trend_summary['declining'] > 0 else None)
                         
                         with col2:
-                            st.metric("📊 Stable Species", trend_summary['stable'])
+                            st.metric("Stable Species", trend_summary['stable'])
                         
                         with col3:
-                            st.metric("📈 Increasing Species", trend_summary['increasing'], 
+                            st.metric("Increasing Species", trend_summary['increasing'], 
                                      delta=trend_summary['increasing'] if trend_summary['increasing'] > 0 else None)
                         
                         with col4:
                             avg_confidence = sum([t['confidence'] for t in trends.values()]) / len(trends)
-                            st.metric("🎯 Avg Confidence", f"{avg_confidence:.2f}")
+                            st.metric("Avg Confidence", f"{avg_confidence:.2f}")
                         
                         # Trend details
                         st.markdown("#### 📋 Species Trend Details")
@@ -2284,20 +2286,20 @@ def render_advanced_analytics():
                 
                 # Biodiversity Hotspots Tab
                 with tab2:
-                    st.subheader("🌍 Biodiversity Hotspot Detection")
+                    st.subheader("Biodiversity Hotspot Detection")
                     
                     with st.spinner("Detecting biodiversity hotspots..."):
                         hotspots = analytics.detect_biodiversity_hotspots(data, hotspot_radius, 5)
                     
                     if hotspots:
-                        st.success(f"✅ Detected {len(hotspots)} biodiversity hotspots")
+                        st.success(f"Detected {len(hotspots)} biodiversity hotspots")
                         
                         # Hotspot summary metrics
                         col1, col2, col3 = st.columns(3)
                         
                         with col1:
                             total_species = sum([h.species_count for h in hotspots])
-                            st.metric("🌟 Total Hotspot Species", total_species)
+                            st.metric("Total Hotspot Species", total_species)
                         
                         with col2:
                             high_priority = len([h for h in hotspots if h.conservation_priority > 0.7])
@@ -2349,7 +2351,7 @@ def render_advanced_analytics():
                                 ))
                             
                             fig.update_layout(
-                                title="🌍 Australian Biodiversity Hotspots",
+                                title="Australian Biodiversity Hotspots",
                                 geo=dict(
                                     scope='oceania',  # Fixed: was 'australia', now 'oceania'
                                     showland=True,
@@ -2363,14 +2365,14 @@ def render_advanced_analytics():
                             st.plotly_chart(fig, use_container_width=True)
                             
                         except ImportError:
-                            st.info("📍 Map visualization requires plotly. Install with: pip install plotly")
+                            st.info("Map visualization requires plotly. Install with: pip install plotly")
                     
                     else:
                         st.info("ℹ️ No biodiversity hotspots detected. Try adjusting parameters or adding more data.")
                 
                 # Conservation Alerts Tab
                 with tab3:
-                    st.subheader("🚨 Conservation Risk Assessment")
+                    st.subheader("Conservation Risk Assessment")
                     
                     with st.spinner("Assessing conservation risks..."):
                         alerts = analytics.assess_conservation_risk(trends if 'trends' in locals() else {}, data)
@@ -2384,11 +2386,11 @@ def render_advanced_analytics():
                         col1, col2, col3, col4 = st.columns(4)
                         
                         with col1:
-                            st.metric("🚨 Critical Alerts", alert_counts['critical'], 
+                            st.metric("Critical Alerts", alert_counts['critical'], 
                                      delta=-alert_counts['critical'] if alert_counts['critical'] > 0 else None)
                         
                         with col2:
-                            st.metric("⚠️ High Risk", alert_counts['high'])
+                            st.metric("️ High Risk", alert_counts['high'])
                         
                         with col3:
                             st.metric("🔔 Medium Risk", alert_counts['medium'])
@@ -2401,8 +2403,8 @@ def render_advanced_analytics():
                         
                         for alert in alerts:
                             severity_colors = {
-                                'critical': '🚨',
-                                'high': '⚠️',
+                                'critical': '',
+                                'high': '️',
                                 'medium': '🔔',
                                 'low': 'ℹ️'
                             }
@@ -2418,7 +2420,7 @@ def render_advanced_analytics():
                                         st.markdown(f"• {rec}")
                     
                     else:
-                        st.success("✅ No critical conservation alerts detected!")
+                        st.success("No critical conservation alerts detected!")
                 
                 # Ecosystem Health Tab
                 with tab4:
@@ -2468,13 +2470,13 @@ def render_advanced_analytics():
                             biodiversity = report['biodiversity_metrics']
                             conservation = report['conservation_status']
                             
-                            st.metric("📈 Total Records", f"{metrics['total_records']:,}")
+                            st.metric("Total Records", f"{metrics['total_records']:,}")
                             st.metric("🐨 Species Count", metrics['species_count'])
-                            st.metric("🌍 Hotspots", biodiversity['hotspots_count'])
-                            st.metric("🚨 Active Alerts", conservation['total_alerts'])
+                            st.metric("Hotspots", biodiversity['hotspots_count'])
+                            st.metric("Active Alerts", conservation['total_alerts'])
                         
                         # Detailed report sections
-                        with st.expander("📋 Detailed Report", expanded=True):
+                        with st.expander("Detailed Report", expanded=True):
                             
                             col1, col2 = st.columns(2)
                             
@@ -2548,16 +2550,16 @@ def render_advanced_analytics():
                         col1, col2, col3 = st.columns(3)
                         
                         with col1:
-                            st.metric("🎯 Avg Model Confidence", f"{avg_confidence:.2f}")
+                            st.metric("Avg Model Confidence", f"{avg_confidence:.2f}")
                         
                         with col2:
-                            st.metric("✅ High Confidence Predictions", high_confidence)
+                            st.metric("High Confidence Predictions", high_confidence)
                         
                         with col3:
-                            st.metric("📈 Models Evaluated", len(trends))
+                            st.metric("Models Evaluated", len(trends))
                     
                     # ML Configuration
-                    with st.expander("⚙️ ML Configuration", expanded=False):
+                    with st.expander("️ ML Configuration", expanded=False):
                         st.markdown("**Current ML Parameters:**")
                         st.code(f"""
 # Trend Analysis
@@ -2593,9 +2595,9 @@ def render_advanced_analytics():
         st.markdown("#### 🚀 Advanced Analytics Capabilities")
         
         features = [
-            ("📈 Population Trends", "Machine learning-powered trend analysis using Random Forest regression"),
-            ("🌍 Biodiversity Hotspots", "Spatial clustering to identify high-diversity conservation areas"),
-            ("🚨 Conservation Alerts", "Automated risk assessment with severity classification"),
+            ("Population Trends", "Machine learning-powered trend analysis using Random Forest regression"),
+            ("Biodiversity Hotspots", "Spatial clustering to identify high-diversity conservation areas"),
+            ("Conservation Alerts", "Automated risk assessment with severity classification"),
             ("🌿 Ecosystem Health", "Comprehensive health scoring with management recommendations"),
             ("🤖 ML Insights", "Advanced machine learning model performance and configuration")
         ]
@@ -2692,10 +2694,10 @@ def main():
         etl_executed, etl_message = dashboard_temp.check_etl_execution_status()
         
         if etl_executed:
-            button_text = "🔄 Re-run ETL Demo"
+            button_text = "Re-run ETL Demo"
             button_help = "Re-execute ETL pipeline to refresh data"
         else:
-            button_text = "▶️ Run ETL Demo"
+            button_text = "Run ETL Demo"
             button_help = "Execute ETL pipeline to collect wildlife data"
             
         if st.button(button_text, help=button_help):
@@ -2722,14 +2724,14 @@ def main():
                     )
                     
                     if result.returncode == 0:
-                        st.success("✅ ETL demo completed!")
+                        st.success("ETL demo completed!")
                         st.session_state.etl_status = 'Success'
                         st.session_state.etl_last_run = pd.Timestamp.now()
                         st.session_state.etl_run_in_session = True  # Mark ETL as run in this session
                         st.cache_data.clear()  # Refresh dashboard data
-                        st.info("🔄 **Data refreshed!** Navigate to other pages to see updated results.")
+                        st.info("**Data refreshed!** Navigate to other pages to see updated results.")
                     else:
-                        st.error("❌ ETL demo failed!")
+                        st.error("ETL demo failed!")
                         st.session_state.etl_status = 'Failed'
                         if result.stderr:
                             st.text(f"Error: {result.stderr[:200]}...")
@@ -2737,7 +2739,7 @@ def main():
                 except subprocess.TimeoutExpired:
                     st.error("⏰ ETL timed out. Try manual execution.")
                 except Exception as e:
-                    st.error(f"❌ Error: {str(e)}")
+                    st.error(f"Error: {str(e)}")
                     st.info("Try: `python scripts/enhanced_etl_demo.py`")
     
     with col2:
@@ -2751,10 +2753,10 @@ def main():
     etl_executed, etl_message = dashboard_temp.check_etl_execution_status()
     
     if etl_executed:
-        st.sidebar.success("✅ ETL: Ready")
+        st.sidebar.success("ETL: Ready")
         st.sidebar.caption("Wildlife data available")
     else:
-        st.sidebar.error("⚠️ ETL: Required")
+        st.sidebar.error("ETL: Required")
         st.sidebar.caption("Run ETL Demo first")
     
     # Compact Stats (conditional on ETL execution)
