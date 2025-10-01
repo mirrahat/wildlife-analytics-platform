@@ -223,6 +223,13 @@ class WildlifeDashboard:
             cursor.execute("SELECT COUNT(*) FROM wildlife_gold")
             gold_count = cursor.fetchone()[0]
             
+            # Multi-source layer
+            try:
+                cursor.execute("SELECT COUNT(*) FROM wildlife_multisource")
+                multisource_count = cursor.fetchone()[0]
+            except:
+                multisource_count = 0
+            
             # ETL jobs
             cursor.execute("""
                 SELECT COUNT(*) as total,
@@ -237,6 +244,7 @@ class WildlifeDashboard:
                 'bronze_count': bronze_count,
                 'silver_count': silver_count,
                 'gold_count': gold_count,
+                'multisource_count': multisource_count,
                 'avg_quality': avg_quality,
                 'total_jobs': job_stats[0],
                 'successful_jobs': job_stats[1]
@@ -279,7 +287,7 @@ class WildlifeDashboard:
             df = pd.read_sql_query("""
                 SELECT common_name, scientific_name, location_description,
                        latitude, longitude, observed_date, observer_name,
-                       quality_score, data_source
+                       data_source, processed_at, quality_score
                 FROM wildlife_silver
                 WHERE common_name IS NOT NULL
                 ORDER BY processed_at DESC
@@ -288,6 +296,113 @@ class WildlifeDashboard:
             return df
         except Exception as e:
             st.error(f"Error loading silver layer data: {e}")
+            return pd.DataFrame()
+    
+    def load_multisource_data(self):
+        """Load multi-source data from all 4 biodiversity APIs"""
+        conn = self.get_connection()
+        if conn is None:
+            return pd.DataFrame()
+        
+        try:
+            df = pd.read_sql_query("""
+                SELECT common_name, scientific_name, location_description,
+                       latitude, longitude, observed_date, observer_name,
+                       data_source, collected_at
+                FROM wildlife_multisource
+                WHERE common_name IS NOT NULL
+                ORDER BY collected_at DESC
+            """, conn)
+            conn.close()
+            return df
+        except Exception as e:
+            st.error(f"Error loading multi-source data: {e}")
+            return pd.DataFrame()
+    
+    def check_etl_execution_status(self, check_session_state=True):
+        """Check if ETL pipeline has been executed recently"""
+        
+        # If checking session state and ETL was run in current session, return True
+        if check_session_state:
+            import streamlit as st
+            if hasattr(st, 'session_state') and getattr(st.session_state, 'etl_run_in_session', False):
+                # Get data counts to show in message
+                conn = self.get_connection()
+                if conn is not None:
+                    try:
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT COUNT(*) FROM wildlife_multisource")
+                        multisource_count = cursor.fetchone()[0]
+                        cursor.execute("SELECT COUNT(*) FROM etl_job_executions WHERE status = 'success'")
+                        job_count = cursor.fetchone()[0]
+                        conn.close()
+                        return True, f"ETL executed in current session ({multisource_count} multi-source records, {job_count} successful jobs)"
+                    except:
+                        conn.close()
+                        return True, "ETL executed in current session"
+                return True, "ETL executed in current session"
+        
+        # If ETL hasn't been run in current session, always return False
+        # This forces the user to run ETL in this session to see the "executed recently" status
+        return False, "ETL needs to be executed - click 'Run ETL Demo' to collect fresh wildlife data"
+    
+    def has_sufficient_data(self):
+        """Check if we have sufficient data to show meaningful results"""
+        conn = self.get_connection()
+        if conn is None:
+            return False
+        
+        try:
+            cursor = conn.cursor()
+            
+            # Check multisource data count
+            cursor.execute("SELECT COUNT(*) FROM wildlife_multisource")
+            multisource_count = cursor.fetchone()[0]
+            
+            # Check silver data count  
+            cursor.execute("SELECT COUNT(*) FROM wildlife_silver")
+            silver_count = cursor.fetchone()[0]
+            
+            conn.close()
+            
+            # Consider sufficient if we have either substantial multisource data or silver data
+            return multisource_count >= 100 or silver_count >= 50
+            
+        except Exception as e:
+            conn.close()
+            return False
+    
+    def load_multi_source_data(self):
+        """Load multi-source data from data lake inventory (Bronze layer)"""
+        conn = self.get_connection()
+        if conn is None:
+            return pd.DataFrame()
+        
+        try:
+            # Try to load from data_lake_inventory which has the multi-source data
+            df = pd.read_sql_query("""
+                SELECT record_data, data_source, created_at, record_count
+                FROM data_lake_inventory
+                WHERE data_layer = 'bronze'
+                AND record_data IS NOT NULL
+                ORDER BY created_at DESC
+            """, conn)
+            
+            if df.empty:
+                # Fallback to wildlife_sightings if available
+                df = pd.read_sql_query("""
+                    SELECT common_name, scientific_name, location as location_description,
+                           latitude, longitude, observation_date as observed_date, 
+                           observer_name, data_source, created_at
+                    FROM wildlife_sightings
+                    WHERE common_name IS NOT NULL
+                    ORDER BY created_at DESC
+                """, conn)
+            
+            conn.close()
+            return df
+        except Exception as e:
+            st.error(f"Error loading multi-source data: {e}")
             return pd.DataFrame()
 
 def render_main_dashboard():
@@ -300,12 +415,54 @@ def render_main_dashboard():
     
     dashboard = WildlifeDashboard()
     
-    # Load ETL summary
-    etl_summary = dashboard.load_etl_layers_summary()
+    # Check ETL status for main dashboard
+    etl_executed, etl_message = dashboard.check_etl_execution_status()
+    has_data = dashboard.has_sufficient_data()
     
-    if etl_summary:
-        # Key Metrics Row
-        col1, col2, col3, col4, col5 = st.columns(5)
+    # Show ETL status banner and conditional content
+    if not etl_executed or not has_data:
+        st.error("🚨 **ETL Pipeline Not Executed** - Click 'Run ETL Demo' in sidebar to collect wildlife data")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.info("📋 **Step 1**: Click sidebar 'Run ETL Demo'")
+        with col2:
+            st.info("⏳ **Step 2**: Wait for completion")
+        with col3:
+            st.info("🎯 **Step 3**: Explore full dashboard")
+        
+        # Show placeholder metrics when ETL not run
+        st.markdown("---")
+        st.subheader("📊 Data Pipeline Metrics")
+        st.info("🚀 **Metrics will appear here after running ETL Demo**")
+        
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
+        with col1:
+            st.metric("Bronze Layer (Raw Data)", "---", help="Run ETL Demo to see data")
+        with col2:
+            st.metric("Silver Layer (Cleaned)", "---", help="Run ETL Demo to see data")
+        with col3:
+            st.metric("Gold Layer (Analytics)", "---", help="Run ETL Demo to see data")
+        with col4:
+            st.metric("Multi-Source Records", "---", help="Run ETL Demo to see data")
+        with col5:
+            st.metric("Average Quality Score", "---", help="Run ETL Demo to see data")
+        with col6:
+            st.metric("ETL Success Rate", "---", help="Run ETL Demo to see data")
+        
+        st.markdown("---")
+        st.warning("🔒 **All dashboard features locked** - Run ETL Demo to unlock data visualizations and analytics")
+        return  # Exit early, don't show any data
+    
+    else:
+        st.success(f"✅ **System Ready**: {etl_message}")
+        
+        # Load ETL summary only when ETL has been executed
+        etl_summary = dashboard.load_etl_layers_summary()
+        
+        if etl_summary:
+            # Enhanced Multi-Source Metrics Row
+            col1, col2, col3, col4, col5, col6 = st.columns(6)
         
         with col1:
             st.metric(
@@ -329,13 +486,22 @@ def render_main_dashboard():
             )
         
         with col4:
+            # Multi-source data count
+            multisource_count = etl_summary.get('multisource_count', 0)
+            st.metric(
+                label="Multi-Source Records",
+                value=f"{multisource_count:,}",
+                help="Cross-platform validated records"
+            )
+        
+        with col5:
             st.metric(
                 label="Average Quality Score",
                 value=f"{etl_summary['avg_quality']:.3f}",
                 help="Average data quality score (0-1)"
             )
         
-        with col5:
+        with col6:
             success_rate = 0
             if etl_summary['total_jobs'] > 0:
                 success_rate = (etl_summary['successful_jobs'] / etl_summary['total_jobs']) * 100
@@ -345,61 +511,108 @@ def render_main_dashboard():
                 value=f"{success_rate:.1f}%",
                 help=f"{etl_summary['successful_jobs']}/{etl_summary['total_jobs']} jobs"
             )
-    
-    st.markdown("---")
-    
-    # Data visualizations
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        st.subheader("Species Distribution Map")
         
-        # Load silver layer data for mapping
-        silver_data = dashboard.load_silver_layer_data()
+        st.markdown("---")
         
-        if not silver_data.empty and 'latitude' in silver_data.columns:
-            # Filter for valid coordinates
-            map_data = silver_data.dropna(subset=['latitude', 'longitude'])
+        # Multi-Source Data Overview (only show when ETL executed)
+        if etl_summary.get('multisource_count', 0) > 0:
+            st.subheader("🌐 Multi-Source Data Integration")
             
-            if not map_data.empty:
-                fig = px.scatter_map(
-                    map_data,
-                    lat="latitude",
-                    lon="longitude",
-                    hover_name="common_name",
-                    hover_data={"location_description": True, "observed_date": True, "quality_score": ":.3f"},
-                    color="common_name",
-                    zoom=4,
-                    height=500,
-                    title="Wildlife Observations Across Australia"
-                )
+            # Load and display source breakdown
+            conn = dashboard.get_connection()
+            if conn:
+                try:
+                    multisource_data = pd.read_sql_query("""
+                        SELECT source, COUNT(*) as count 
+                        FROM wildlife_multisource 
+                        GROUP BY source
+                    """, conn)
+                    conn.close()
                 
-                fig.update_layout(
-                    margin={"r": 0, "t": 50, "l": 0, "b": 0}
-                )
+                    if not multisource_data.empty:
+                        col1, col2, col3 = st.columns([2, 1, 1])
+                    
+                        with col1:
+                            # Source distribution chart
+                            fig = px.pie(
+                                multisource_data,
+                                values='count',
+                                names='source',
+                                title="Active Data Sources Distribution"
+                            )
+                            st.plotly_chart(fig, use_container_width=True)
+                    
+                        with col2:
+                            st.markdown("**📊 Source Summary**")
+                            for _, row in multisource_data.iterrows():
+                                source_icon = "🔵" if row['source'] == 'iNaturalist' else "🟢"
+                                st.markdown(f"{source_icon} **{row['source']}**: {row['count']:,} records")
+                    
+                        with col3:
+                            total_sources = len(multisource_data)
+                            total_records = multisource_data['count'].sum()
+                            avg_per_source = total_records / total_sources if total_sources > 0 else 0
+                            
+                            st.metric("Active Sources", total_sources)
+                            st.metric("Total Records", f"{total_records:,}")
+                            st.metric("Avg per Source", f"{avg_per_source:.0f}")
+                except Exception as e:
+                    st.warning("Multi-source data unavailable")
+            
+            st.markdown("---")
+    
+        # Data visualizations (only show when ETL executed)
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            st.subheader("Species Distribution Map")
+        
+            # Load silver layer data for mapping
+            silver_data = dashboard.load_silver_layer_data()
+            
+            if not silver_data.empty and 'latitude' in silver_data.columns:
+                # Filter for valid coordinates
+                map_data = silver_data.dropna(subset=['latitude', 'longitude'])
+            
+                if not map_data.empty:
+                    fig = px.scatter_map(
+                        map_data,
+                        lat="latitude",
+                        lon="longitude",
+                        hover_name="common_name",
+                        hover_data={"location_description": True, "observed_date": True, "quality_score": ":.3f"},
+                        color="common_name",
+                        zoom=4,
+                        height=500,
+                        title="Wildlife Observations Across Australia"
+                    )
                 
-                st.plotly_chart(fig, use_container_width=True)
+                    fig.update_layout(
+                        margin={"r": 0, "t": 50, "l": 0, "b": 0}
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.info("No coordinate data available for mapping.")
             else:
-                st.info("No coordinate data available for mapping.")
-        else:
-            st.info("No location data available. Run the ETL pipeline to process geographic data.")
+                st.info("No location data available. Run the ETL pipeline to process geographic data.")
     
-    with col2:
-        st.subheader("Species Observations")
-        
-        if not silver_data.empty:
-            species_counts = silver_data['common_name'].value_counts().head(10)
+        with col2:
+            st.subheader("Species Observations")
             
-            fig = px.bar(
-                x=species_counts.values,
-                y=species_counts.index,
-                orientation='h',
-                title="Top 10 Most Observed Species",
-                labels={'x': 'Observations', 'y': 'Species'}
-            )
-            
-            fig.update_layout(height=500)
-            st.plotly_chart(fig, use_container_width=True)
+            if not silver_data.empty:
+                species_counts = silver_data['common_name'].value_counts().head(10)
+                
+                fig = px.bar(
+                    x=species_counts.values,
+                    y=species_counts.index,
+                    orientation='h',
+                    title="Top 10 Most Observed Species",
+                    labels={'x': 'Observations', 'y': 'Species'}
+                )
+                
+                fig.update_layout(height=500)
+                st.plotly_chart(fig, use_container_width=True)
 
 def render_etl_monitoring():
     """Render ETL monitoring dashboard"""
@@ -415,80 +628,145 @@ def render_etl_monitoring():
     etl_history = dashboard.load_etl_job_history()
     
     if not etl_history.empty:
-        # ETL Job Status Overview
+        # Enhanced ETL Job Status Overview with Multi-Source Context
+        st.subheader("🔄 ETL Pipeline Performance Dashboard")
+        
+        # Multi-source integration status
+        multi_source_jobs = etl_history[etl_history['job_name'].str.contains('multi_source', case=False, na=False)]
+        if not multi_source_jobs.empty:
+            latest_multi_job = multi_source_jobs.iloc[0]
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("🌐 Multi-Source Status", 
+                         "✅ Active" if latest_multi_job['status'] == 'success' else "❌ Failed")
+            
+            with col2:
+                st.metric("📊 Last Collection", 
+                         f"{latest_multi_job['records_loaded']:,} records")
+            
+            with col3:
+                st.metric("🕐 Last Updated", 
+                         pd.to_datetime(latest_multi_job['start_time']).strftime('%H:%M'))
+            
+            with col4:
+                sources_info = latest_multi_job.get('quality_issues', '')
+                source_count = sources_info.count(',') + 1 if ',' in str(sources_info) else 1
+                st.metric("🔌 Active Sources", source_count)
+        
+        # ETL Job History Table
         col1, col2 = st.columns([3, 1])
         
         with col1:
             st.subheader("Recent ETL Job Executions")
             
-            # Create status indicator
+            # Enhanced job display with multi-source highlighting
+            etl_history['job_type'] = etl_history['job_name'].apply(
+                lambda x: '🌐 Multi-Source' if 'multi_source' in str(x).lower() 
+                else '🔄 Standard ETL'
+            )
+            
             etl_history['status_icon'] = etl_history['status'].map({
-                'success': 'Success',
-                'failed': 'Failed'
+                'success': '✅ Success',
+                'failed': '❌ Failed'
             })
             
-            # Display job history table
-            display_cols = ['job_name', 'status_icon', 'records_extracted', 
+            # Display enhanced job history table
+            display_cols = ['job_type', 'job_name', 'status_icon', 'records_extracted', 
                           'records_loaded', 'duration_seconds', 'start_time']
             
-            st.dataframe(
-                etl_history[display_cols].rename(columns={
-                    'job_name': 'Job Name',
-                    'status_icon': 'Status',
-                    'records_extracted': 'Extracted',
-                    'records_loaded': 'Loaded',
-                    'duration_seconds': 'Duration (s)',
-                    'start_time': 'Execution Time'
-                }),
-                use_container_width=True
-            )
+            display_df = etl_history[display_cols].rename(columns={
+                'job_type': 'Type',
+                'job_name': 'Job Name',
+                'status_icon': 'Status',
+                'records_extracted': 'Extracted',
+                'records_loaded': 'Loaded',
+                'duration_seconds': 'Duration (s)',
+                'start_time': 'Execution Time'
+            })
+            
+            st.dataframe(display_df, use_container_width=True)
         
         with col2:
             st.subheader("Job Performance")
             
-            # Success rate pie chart
+            # Enhanced success rate with multi-source context
             success_counts = etl_history['status'].value_counts()
             
             if len(success_counts) > 0:
+                # Calculate multi-source vs standard job success rates
+                multi_jobs = etl_history[etl_history['job_name'].str.contains('multi_source', case=False, na=False)]
+                standard_jobs = etl_history[~etl_history['job_name'].str.contains('multi_source', case=False, na=False)]
+                
+                # Multi-source success rate
+                multi_success_rate = (multi_jobs['status'] == 'success').mean() * 100 if not multi_jobs.empty else 0
+                standard_success_rate = (standard_jobs['status'] == 'success').mean() * 100 if not standard_jobs.empty else 0
+                
+                # Display success rates
+                st.metric("🌐 Multi-Source Success Rate", f"{multi_success_rate:.1f}%")
+                st.metric("🔄 Standard ETL Success Rate", f"{standard_success_rate:.1f}%")
+                
+                # Overall status pie chart
                 fig = px.pie(
                     values=success_counts.values,
                     names=success_counts.index,
-                    title="ETL Job Status Distribution",
+                    title="Overall ETL Job Status",
                     color_discrete_map={'success': '#28a745', 'failed': '#dc3545'}
                 )
                 st.plotly_chart(fig, use_container_width=True)
         
-        # Performance trends
-        st.subheader("Performance Trends")
+        # Enhanced Performance Trends
+        st.subheader("📈 Performance Trends & Multi-Source Analytics")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            # Duration trend
+            # Duration trend with job type differentiation
             etl_history['start_time'] = pd.to_datetime(etl_history['start_time'])
             
             fig = px.line(
                 etl_history,
                 x='start_time',
                 y='duration_seconds',
-                color='job_name',
-                title="ETL Job Duration Over Time",
-                labels={'start_time': 'Execution Time', 'duration_seconds': 'Duration (seconds)'}
+                color='job_type',
+                title="ETL Job Duration: Multi-Source vs Standard",
+                labels={'start_time': 'Execution Time', 'duration_seconds': 'Duration (seconds)'},
+                color_discrete_map={'🌐 Multi-Source': '#17a2b8', '🔄 Standard ETL': '#6c757d'}
             )
             st.plotly_chart(fig, use_container_width=True)
         
         with col2:
-            # Records processed trend
+            # Records processed with job type highlighting
+            recent_jobs = etl_history.head(10).copy()
+            
             fig = px.bar(
-                etl_history.head(10),
+                recent_jobs,
                 x='job_name',
                 y='records_loaded',
-                color='status',
-                title="Records Processed by Job",
-                color_discrete_map={'success': '#28a745', 'failed': '#dc3545'}
+                color='job_type',
+                title="Records Processed by Job Type",
+                color_discrete_map={'🌐 Multi-Source': '#17a2b8', '🔄 Standard ETL': '#6c757d'}
             )
             fig.update_layout(xaxis_tickangle=45)
             st.plotly_chart(fig, use_container_width=True)
+        
+        # Multi-Source Performance Deep Dive
+        if not multi_source_jobs.empty:
+            st.subheader("🌐 Multi-Source Collection Performance")
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                avg_records = multi_source_jobs['records_loaded'].mean()
+                st.metric("📊 Avg Records per Collection", f"{avg_records:,.0f}")
+            
+            with col2:
+                avg_duration = multi_source_jobs['duration_seconds'].mean()
+                st.metric("⏱️ Avg Collection Time", f"{avg_duration:.1f}s")
+            
+            with col3:
+                records_per_second = avg_records / avg_duration if avg_duration > 0 else 0
+                st.metric("🚀 Processing Rate", f"{records_per_second:.0f} rec/s")
     
     else:
         st.info("No ETL job history found. Run the ETL pipeline to see monitoring data.")
@@ -573,10 +851,117 @@ def render_data_quality_dashboard():
     st.header("Data Quality Dashboard")
     
     dashboard = WildlifeDashboard()
+    
+    # Check ETL execution status first
+    etl_executed, etl_message = dashboard.check_etl_execution_status()
+    has_data = dashboard.has_sufficient_data()
+    
+    # Show ETL dependency warning if needed
+    if not etl_executed or not has_data:
+        st.warning("⚠️ **ETL Pipeline Required**")
+        st.info(f"**Status**: {etl_message}")
+        
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.markdown("""
+            **To view complete data quality analysis, please:**
+            1. Navigate to the sidebar
+            2. Click **"Run ETL Demo"** button  
+            3. Wait for completion (may take 1-2 minutes)
+            4. Return to this page for full analysis
+            """)
+        
+        with col2:
+            st.markdown("**Current Data Status:**")
+            if has_data:
+                st.success("✅ Some data available")
+            else:
+                st.error("❌ No data for analysis")
+                
+        # Show minimal preview if data exists
+        if has_data:
+            st.subheader("📊 Limited Data Preview")
+            silver_data = dashboard.load_silver_layer_data() 
+            multisource_data = dashboard.load_multisource_data()
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Silver Layer Records", len(silver_data))
+            with col2:
+                st.metric("Multi-Source Records", len(multisource_data))
+            
+            st.info("💡 **Run ETL Demo** for complete analysis with quality charts, source comparisons, and detailed metrics!")
+        else:
+            st.error("🚫 **No data available** - Please run ETL Demo first to collect and process wildlife data.")
+            
+        return  # Exit early if ETL not properly executed
+    
+    # ETL executed successfully - show full dashboard
+    st.success(f"✅ **ETL Status**: {etl_message}")
+    
     silver_data = dashboard.load_silver_layer_data()
     
+    # Display data source metrics first  
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("🥈 Silver Layer Data Quality")
+        if not silver_data.empty and 'data_source' in silver_data.columns:
+            silver_source_counts = silver_data['data_source'].value_counts()
+            
+            st.write(f"**Total Records:** {len(silver_data)}")
+            for source, count in silver_source_counts.items():
+                st.write(f"• {source}: {count} records")
+            
+            # Silver layer source pie chart
+            fig = px.pie(
+                values=silver_source_counts.values,
+                names=silver_source_counts.index,
+                title="Silver Layer Data Sources"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No silver layer data available")
+    
+    with col2:
+        st.subheader("🌐 Multi-Source Raw Data")
+        
+        # Load actual multi-source data
+        multisource_data = dashboard.load_multisource_data()
+        
+        if not multisource_data.empty:
+            source_counts = multisource_data['data_source'].value_counts()
+            
+            st.write(f"**Total Records:** {len(multisource_data)}")
+            
+            # Map source names for better display
+            source_display_names = {
+                'inaturalist': 'iNaturalist',
+                'gbif': 'GBIF',
+                'ebird': 'eBird',
+                'ala': 'Atlas of Living Australia'
+            }
+            
+            for source, count in source_counts.items():
+                display_name = source_display_names.get(source, source)
+                st.write(f"• {display_name}: {count} records")
+            
+            # Multi-source pie chart with proper names
+            display_counts = source_counts.copy()
+            display_counts.index = [source_display_names.get(idx, idx) for idx in display_counts.index]
+            
+            fig = px.pie(
+                values=display_counts.values,
+                names=display_counts.index,
+                title="Multi-Source Data Distribution",
+                color_discrete_sequence=px.colors.qualitative.Set3
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No multi-source data found. Run ETL pipeline to collect data.")
+    
+    # Data quality analysis for silver layer
     if not silver_data.empty:
-        # Data completeness metrics
         st.subheader("Data Completeness Analysis")
         
         completeness_data = []
@@ -593,38 +978,152 @@ def render_data_quality_dashboard():
                 completeness_df,
                 x='Field',
                 y='Completeness (%)',
-                title="Data Field Completeness",
+                title="Silver Layer Field Completeness",
                 color='Completeness (%)',
                 color_continuous_scale='RdYlGn'
             )
             fig.update_layout(xaxis_tickangle=45)
             st.plotly_chart(fig, use_container_width=True)
         
-        # Quality score distribution
+        # Data quality indicators based on completeness
+        st.subheader("Data Quality Indicators")
+        
+        # Calculate quality indicators
+        coord_completeness = 0
+        if 'latitude' in silver_data.columns and 'longitude' in silver_data.columns:
+            coord_completeness = ((silver_data['latitude'].notna() & 
+                                 silver_data['longitude'].notna()).sum() / len(silver_data)) * 100
+        
+        species_completeness = 0
+        if 'scientific_name' in silver_data.columns:
+            species_completeness = (silver_data['scientific_name'].notna().sum() / len(silver_data)) * 100
+        
+        overall_quality = (coord_completeness + species_completeness) / 2
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Coordinate Quality", f"{coord_completeness:.1f}%")
+        with col2:
+            st.metric("Species Name Quality", f"{species_completeness:.1f}%")
+        with col3:
+            st.metric("Overall Quality", f"{overall_quality:.1f}%")
+        
+        # Quality assessment
+        if overall_quality >= 80:
+            st.success("🌟 Excellent data quality!")
+        elif overall_quality >= 60:
+            st.warning("⚠️ Good data quality with room for improvement")
+        else:
+            st.error("❌ Data quality needs attention")
+    
+    # Comprehensive Multi-Source Quality Analysis
+    multisource_data = dashboard.load_multisource_data()
+    if not multisource_data.empty:
+        st.subheader("🌍 Multi-Source Quality Analysis")
+        st.write(f"**Analyzing {len(multisource_data)} records from 4 biodiversity APIs**")
+        
+        # Source-by-source quality analysis
         col1, col2 = st.columns(2)
         
         with col1:
-            if 'quality_score' in silver_data.columns:
-                fig = px.histogram(
-                    silver_data,
-                    x='quality_score',
-                    nbins=20,
-                    title="Quality Score Distribution",
-                    labels={'quality_score': 'Quality Score', 'count': 'Number of Records'}
-                )
-                st.plotly_chart(fig, use_container_width=True)
+            st.markdown("**Data Quality by Source:**")
+            
+            source_display_names = {
+                'inaturalist': 'iNaturalist',
+                'gbif': 'GBIF', 
+                'ebird': 'eBird',
+                'ala': 'Atlas of Living Australia'
+            }
+            
+            quality_data = []
+            
+            for source in multisource_data['data_source'].unique():
+                source_data = multisource_data[multisource_data['data_source'] == source]
+                display_name = source_display_names.get(source, source)
+                
+                # Calculate quality metrics
+                coord_complete = (source_data['latitude'].notna() & source_data['longitude'].notna()).sum()
+                coord_pct = (coord_complete / len(source_data)) * 100
+                
+                sci_complete = source_data['scientific_name'].notna().sum()
+                sci_pct = (sci_complete / len(source_data)) * 100
+                
+                loc_complete = source_data['location_description'].notna().sum()
+                loc_pct = (loc_complete / len(source_data)) * 100
+                
+                obs_complete = source_data['observer_name'].notna().sum()
+                obs_pct = (obs_complete / len(source_data)) * 100
+                
+                overall_source_quality = (coord_pct + sci_pct + loc_pct + obs_pct) / 4
+                
+                quality_data.append({
+                    'Source': display_name,
+                    'Records': len(source_data),
+                    'Coordinates': coord_pct,
+                    'Scientific Names': sci_pct,
+                    'Locations': loc_pct,
+                    'Observers': obs_pct,
+                    'Overall Quality': overall_source_quality
+                })
+                
+                # Display detailed metrics
+                st.markdown(f"**{display_name}** ({len(source_data)} records)")
+                st.progress(overall_source_quality / 100)
+                st.markdown(f"  - Coordinates: {coord_pct:.1f}%")
+                st.markdown(f"  - Scientific names: {sci_pct:.1f}%")
+                st.markdown(f"  - Locations: {loc_pct:.1f}%")
+                st.markdown(f"  - Observers: {obs_pct:.1f}%")
+                st.markdown("---")
         
         with col2:
-            # Data source breakdown
-            if 'data_source' in silver_data.columns:
-                source_counts = silver_data['data_source'].value_counts()
+            # Quality comparison chart
+            if quality_data:
+                quality_df = pd.DataFrame(quality_data)
                 
-                fig = px.pie(
-                    values=source_counts.values,
-                    names=source_counts.index,
-                    title="Data Sources Distribution"
+                fig = px.bar(
+                    quality_df,
+                    x='Source',
+                    y='Overall Quality',
+                    title="Data Quality by Source",
+                    color='Overall Quality',
+                    color_continuous_scale='RdYlGn',
+                    text='Records'
                 )
+                fig.update_traces(texttemplate='%{text}<br>records', textposition='outside')
+                fig.update_layout(xaxis_tickangle=45)
+                fig.update_yaxes(range=[0, 100])
                 st.plotly_chart(fig, use_container_width=True)
+        
+        # Multi-source species diversity
+        st.subheader("🦘 Species Diversity Across Sources")
+        
+        species_by_source = multisource_data.groupby('data_source')['common_name'].nunique().reset_index()
+        species_by_source.columns = ['data_source', 'unique_species']
+        
+        # Map source names
+        species_by_source['display_source'] = species_by_source['data_source'].map(source_display_names)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            fig = px.bar(
+                species_by_source,
+                x='display_source',
+                y='unique_species',
+                title="Unique Species per Source",
+                color='unique_species',
+                color_continuous_scale='Viridis'
+            )
+            fig.update_layout(xaxis_tickangle=45)
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            # Show top species across all sources
+            top_species = multisource_data['common_name'].value_counts().head(10)
+            st.markdown("**Most Observed Species:**")
+            for species, count in top_species.items():
+                sources = multisource_data[multisource_data['common_name'] == species]['data_source'].nunique()
+                st.markdown(f"• **{species}**: {count} observations ({sources} sources)")
     
     else:
         st.info("No quality data available. Run the ETL pipeline to generate quality metrics.")
@@ -635,6 +1134,28 @@ def render_species_explorer():
     st.header("Species Explorer")
     
     dashboard = WildlifeDashboard()
+    
+    # Check ETL execution status
+    etl_executed, etl_message = dashboard.check_etl_execution_status()
+    has_data = dashboard.has_sufficient_data()
+    
+    if not etl_executed or not has_data:
+        st.error("🚨 **ETL Pipeline Required for Species Explorer**")
+        st.info(f"**Status**: {etl_message}")
+        
+        st.markdown("""
+        **To explore species data:**
+        1. Click **"Run ETL Demo"** in the sidebar
+        2. Wait for data collection and processing
+        3. Return here to explore species observations
+        """)
+        
+        if not has_data:
+            st.warning("🔒 **No species data available** - Run ETL Demo to collect wildlife observations")
+        return
+    
+    st.success(f"✅ **ETL Status**: {etl_message}")
+    
     silver_data = dashboard.load_silver_layer_data()
     
     if not silver_data.empty:
@@ -684,8 +1205,22 @@ def render_species_explorer():
                 st.subheader(f"{selected_species} Timeline")
                 
                 if 'observed_date' in species_data.columns:
-                    species_data['observed_date'] = pd.to_datetime(species_data['observed_date'])
-                    daily_counts = species_data.groupby(species_data['observed_date'].dt.date).size()
+                    species_data = species_data.copy()
+                    try:
+                        # Convert to datetime with proper error handling
+                        species_data['observed_date_dt'] = pd.to_datetime(species_data['observed_date'], errors='coerce')
+                        
+                        # Check if we have valid datetime data after conversion
+                        if not species_data['observed_date_dt'].isna().all():
+                            # Group by date using the converted datetime column
+                            daily_counts = species_data.groupby(species_data['observed_date_dt'].dt.date).size()
+                        else:
+                            # Fallback: try to parse as string dates directly
+                            date_counts = species_data['observed_date'].value_counts()
+                            daily_counts = date_counts
+                    except Exception as e:
+                        # Final fallback if all datetime operations fail
+                        daily_counts = pd.Series([len(species_data)], index=['All Observations'])
                     
                     fig = px.line(
                         x=daily_counts.index,
@@ -754,6 +1289,27 @@ def render_multi_source_analytics():
             """)
     
     dashboard = WildlifeDashboard()
+    
+    # Check ETL execution status
+    etl_executed, etl_message = dashboard.check_etl_execution_status()
+    has_data = dashboard.has_sufficient_data()
+    
+    if not etl_executed or not has_data:
+        st.error("🚨 **ETL Pipeline Required for Multi-Source Analytics**")
+        st.info(f"**Status**: {etl_message}")
+        
+        st.markdown("""
+        **To view multi-source analytics:**
+        1. Click **"Run ETL Demo"** in the sidebar
+        2. Wait for multi-source data collection
+        3. Return here for cross-platform analytics
+        """)
+        
+        if not has_data:
+            st.warning("🔒 **No multi-source data available** - Run ETL Demo to collect and integrate data from multiple sources")
+        return
+    
+    st.success(f"✅ **ETL Status**: {etl_message}")
     
     # Check for multi-source data
     conn = dashboard.get_connection()
@@ -1545,6 +2101,29 @@ def render_advanced_analytics():
     if not analytics_available:
         return
     
+    # Check ETL execution status
+    from streamlit_dashboard import WildlifeDashboard
+    dashboard = WildlifeDashboard()
+    etl_executed, etl_message = dashboard.check_etl_execution_status()
+    has_data = dashboard.has_sufficient_data()
+    
+    if not etl_executed or not has_data:
+        st.error("🚨 **ETL Pipeline Required for Advanced Analytics**")
+        st.info(f"**Status**: {etl_message}")
+        
+        st.markdown("""
+        **To use advanced analytics and machine learning:**
+        1. Click **"Run ETL Demo"** in the sidebar
+        2. Wait for complete data collection and processing
+        3. Return here for ML-powered conservation insights
+        """)
+        
+        if not has_data:
+            st.warning("🔒 **No data available for ML analysis** - Run ETL Demo to collect biodiversity data")
+        return
+    
+    st.success(f"✅ **ETL Status**: {etl_message}")
+    
     # Initialize analytics
     analytics = AdvancedWildlifeAnalytics()
     
@@ -1645,7 +2224,7 @@ def render_advanced_analytics():
                             else:
                                 return 'background-color: #fff3e0'
                         
-                        styled_df = trend_df.style.applymap(color_trend_status, subset=['Trend Status'])
+                        styled_df = trend_df.style.map(color_trend_status, subset=['Trend Status'])
                         st.dataframe(styled_df, use_container_width=True)
                         
                         # Download trends data
@@ -2057,13 +2636,35 @@ def main():
     col1, col2 = st.sidebar.columns(2)
     
     with col1:
-        if st.button("Run ETL Demo", help="Execute the complete ETL pipeline demonstration"):
+        # Initialize session state for ETL tracking
+        if 'etl_last_run' not in st.session_state:
+            st.session_state.etl_last_run = None
+        if 'etl_status' not in st.session_state:
+            st.session_state.etl_status = 'Not Run'
+        if 'etl_run_in_session' not in st.session_state:
+            st.session_state.etl_run_in_session = False
+            
+        # Create enhanced ETL button
+        dashboard_temp = WildlifeDashboard()
+        etl_executed, etl_message = dashboard_temp.check_etl_execution_status()
+        
+        if etl_executed:
+            button_text = "🔄 Re-run ETL Demo"
+            button_help = "Re-execute ETL pipeline to refresh data"
+        else:
+            button_text = "▶️ Run ETL Demo"
+            button_help = "Execute ETL pipeline to collect wildlife data"
+            
+        if st.button(button_text, help=button_help):
             with st.spinner("Running ETL pipeline..."):
                 
                 try:
                     # Get the correct paths
                     current_dir = os.getcwd()
                     script_path = os.path.join(current_dir, "scripts", "enhanced_etl_demo.py")
+                    
+                    # Update session state
+                    st.session_state.etl_status = 'Running'
                     
                     # Run the ETL pipeline with proper encoding
                     result = subprocess.run(
@@ -2079,9 +2680,14 @@ def main():
                     
                     if result.returncode == 0:
                         st.success("✅ ETL demo completed!")
+                        st.session_state.etl_status = 'Success'
+                        st.session_state.etl_last_run = pd.Timestamp.now()
+                        st.session_state.etl_run_in_session = True  # Mark ETL as run in this session
                         st.cache_data.clear()  # Refresh dashboard data
+                        st.info("🔄 **Data refreshed!** Navigate to other pages to see updated results.")
                     else:
                         st.error("❌ ETL demo failed!")
+                        st.session_state.etl_status = 'Failed'
                         if result.stderr:
                             st.text(f"Error: {result.stderr[:200]}...")
                 
@@ -2095,6 +2701,18 @@ def main():
         if st.button("Refresh Data", help="Refresh dashboard data"):
             st.cache_data.clear()
             st.success("Data refreshed!")
+    
+    # ETL Status Indicator
+    st.sidebar.markdown("---")
+    dashboard_temp = WildlifeDashboard()
+    etl_executed, etl_message = dashboard_temp.check_etl_execution_status()
+    
+    if etl_executed:
+        st.sidebar.success("✅ ETL: Ready")
+        st.sidebar.caption("Wildlife data available")
+    else:
+        st.sidebar.error("⚠️ ETL: Required")
+        st.sidebar.caption("Run ETL Demo first")
     
     # Compact Stats
     st.sidebar.markdown("---")
